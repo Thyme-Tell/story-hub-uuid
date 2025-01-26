@@ -21,6 +21,7 @@ const Profile = () => {
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ["profile", id],
     queryFn: async () => {
+      console.log("Fetching profile for ID:", id);
       const { data, error } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, created_at")
@@ -32,6 +33,7 @@ const Profile = () => {
         return null;
       }
       
+      console.log("Profile data:", data);
       return data;
     },
   });
@@ -41,6 +43,7 @@ const Profile = () => {
     queryFn: async () => {
       if (!id) return [];
       
+      console.log("Fetching stories for profile ID:", id);
       const { data, error } = await supabase
         .from("stories")
         .select(`
@@ -57,6 +60,7 @@ const Profile = () => {
         return [];
       }
       
+      console.log("Stories data:", data);
       return data;
     },
     enabled: !!id,
