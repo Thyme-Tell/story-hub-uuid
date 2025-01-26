@@ -25,27 +25,17 @@ const CreateStorybookDialog = ({ onStorybookCreated }: CreateStorybookDialogProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim()) {
-      toast({
-        title: "Error",
-        description: "Title is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const { error } = await supabase
       .from("storybooks")
       .insert([
         {
-          title: title.trim(),
-          description: description.trim() || null,
+          title,
+          description: description || null,
           profile_id: "11111111-1111-1111-1111-111111111111",
         },
       ]);
 
     if (error) {
-      console.error("Error creating storybook:", error);
       toast({
         title: "Error",
         description: "Failed to create storybook",
@@ -65,16 +55,8 @@ const CreateStorybookDialog = ({ onStorybookCreated }: CreateStorybookDialogProp
     onStorybookCreated();
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen) {
-      setTitle("");
-      setDescription("");
-    }
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />

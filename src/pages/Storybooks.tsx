@@ -107,7 +107,7 @@ const Storybooks = () => {
           ) : (
             <div className="grid gap-4">
               {storybooks?.map((storybook) => (
-                <div key={storybook.id} className="relative group">
+                <div key={storybook.id} className="relative">
                   <Link
                     to={`/storybooks/${storybook.id}`}
                     className="block"
@@ -131,10 +131,7 @@ const Storybooks = () => {
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
+                          onClick={(e) => e.preventDefault()}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
