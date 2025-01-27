@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/ProfileHeader";
 import StoriesList from "@/components/StoriesList";
 import BookProgress from "@/components/BookProgress";
-import { Menu, BookOpen, Book } from "lucide-react";
+import { Menu, Book } from "lucide-react";
 import { useEffect } from "react";
 import {
   DropdownMenu,
@@ -121,12 +121,6 @@ const Profile = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem asChild>
-              <Link to="/storybooks" className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                <span>Storybooks</span>
-              </Link>
-            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to={`/profile/${id}`} className="flex items-center gap-2">
                 <Book className="h-4 w-4" />
