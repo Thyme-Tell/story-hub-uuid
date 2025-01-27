@@ -56,11 +56,6 @@ const SignIn = () => {
       // Set cookie to expire in 365 days
       Cookies.set('profile_authorized', 'true', { expires: 365 });
 
-      toast({
-        title: "Success!",
-        description: "You have been signed in.",
-      });
-
       navigate(`/profile/${profile.id}`);
     } catch (error) {
       console.error("Error:", error);

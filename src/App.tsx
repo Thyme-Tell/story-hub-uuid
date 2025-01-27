@@ -1,24 +1,27 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
-import Index from "@/pages/Index";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import Profile from "@/pages/Profile";
-import SignIn from "@/pages/SignIn";
-import Storybooks from "@/pages/Storybooks";
-import Storybook from "@/pages/Storybook";
+import SharedStoryPage from "@/pages/SharedStory";
+
+const queryClient = new QueryClient();
+
+const router = createBrowserRouter([
+  {
+    path: "/profile/:id",
+    element: <Profile />,
+  },
+  {
+    path: "/shared/:token",
+    element: <SharedStoryPage />,
+  },
+]);
 
 const App = () => {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/profile/:id" element={<Profile />} />
-        <Route path="/sign-in" element={<SignIn />} />
-        <Route path="/storybooks" element={<Storybooks />} />
-        <Route path="/storybooks/:id" element={<Storybook />} />
-      </Routes>
-      <Toaster />
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   );
 };
 

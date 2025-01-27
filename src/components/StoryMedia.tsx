@@ -26,7 +26,7 @@ const StoryMedia = ({ storyId }: StoryMediaProps) => {
   const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
   const [cropMediaId, setCropMediaId] = useState<string | null>(null);
 
-  const { data: mediaItems, isLoading } = useStoryMedia(storyId);
+  const { data: mediaItems, isLoading, refetch } = useStoryMedia(storyId);
   const { updateMedia, updateCaption } = useMediaOperations(storyId);
 
   const handleZoomIn = () => {
@@ -81,6 +81,7 @@ const StoryMedia = ({ storyId }: StoryMediaProps) => {
                       onCaptionUpdate={(mediaId, caption) => 
                         updateCaption.mutate({ mediaId, caption })
                       }
+                      onDelete={refetch}
                     />
                   </CarouselItem>
                 );
@@ -94,6 +95,7 @@ const StoryMedia = ({ storyId }: StoryMediaProps) => {
                       onCaptionUpdate={(mediaId, caption) => 
                         updateCaption.mutate({ mediaId, caption })
                       }
+                      onDelete={refetch}
                     />
                   </CarouselItem>
                 );

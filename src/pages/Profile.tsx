@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/ProfileHeader";
 import StoriesList from "@/components/StoriesList";
-import { Menu } from "lucide-react";
+import BookProgress from "@/components/BookProgress";
+import { Menu, BookOpen, Book } from "lucide-react";
 import { useEffect } from "react";
 import {
   DropdownMenu,
@@ -21,7 +22,6 @@ const Profile = () => {
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ["profile", id],
     queryFn: async () => {
-      console.log("Fetching profile for ID:", id);
       const { data, error } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, created_at")
@@ -33,7 +33,6 @@ const Profile = () => {
         return null;
       }
       
-      console.log("Profile data:", data);
       return data;
     },
   });
@@ -43,25 +42,19 @@ const Profile = () => {
     queryFn: async () => {
       if (!id) return [];
       
-      console.log("Fetching stories for profile ID:", id);
-      const { data, error } = await supabase
+      const { data: storiesData, error: storiesError } = await supabase
         .from("stories")
-        .select(`
-          id,
-          title,
-          content,
-          created_at
-        `)
+        .select("id, title, content, created_at")
         .eq("profile_id", id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching stories:", error);
+      if (storiesError) {
+        console.error("Error fetching stories:", storiesError);
         return [];
       }
-      
-      console.log("Stories data:", data);
-      return data;
+
+      console.log("Fetched stories:", storiesData);
+      return storiesData;
     },
     enabled: !!id,
   });
@@ -75,6 +68,11 @@ const Profile = () => {
   }, [profile]);
 
   const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error signing out:", error);
+      return;
+    }
     navigate('/');
   };
 
@@ -123,13 +121,20 @@ const Profile = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={handleLogout} className="text-[#A33D29]">
-              Not {profile?.first_name}? Log Out
+            <DropdownMenuItem asChild>
+              <Link to="/storybooks" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                <span>Storybooks</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/storybooks">
-                Storybooks
+              <Link to={`/profile/${id}`} className="flex items-center gap-2">
+                <Book className="h-4 w-4" />
+                <span>Stories</span>
               </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="text-[#A33D29]">
+              Not {profile.first_name}? Log Out
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/">
@@ -141,6 +146,7 @@ const Profile = () => {
       </div>
       <div className="p-4">
         <div className="max-w-2xl mx-auto space-y-6">
+          <BookProgress profileId={id} />
           <ProfileHeader 
             firstName={profile.first_name} 
             lastName={profile.last_name} 
