@@ -6,11 +6,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import StoryMediaUpload from "./StoryMediaUpload";
 import StoryMedia from "./StoryMedia";
-import { MoreVertical, Pencil, Trash2, Calendar as CalendarIcon, Share2, Copy } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Calendar as CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +39,6 @@ interface StoryCardProps {
     title: string | null;
     content: string;
     created_at: string;
-    share_token?: string | null;
   };
   onUpdate: () => void;
 }
@@ -51,8 +49,6 @@ const StoryCard = ({ story, onUpdate }: StoryCardProps) => {
   const [editContent, setEditContent] = useState(story.content);
   const [date, setDate] = useState<Date>(new Date(story.created_at));
   const { toast } = useToast();
-  const [showShareDialog, setShowShareDialog] = useState(false);
-  const isMobile = useIsMobile();
 
   const handleSave = async () => {
     const { error } = await supabase
@@ -144,45 +140,6 @@ const StoryCard = ({ story, onUpdate }: StoryCardProps) => {
     onUpdate();
   };
 
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/shared/${story.share_token}`;
-    
-    if (isMobile && navigator.share) {
-      try {
-        await navigator.share({
-          title: story.title || 'Shared Story',
-          text: 'Check out this story!',
-          url: shareUrl,
-        });
-        toast({
-          title: "Success",
-          description: "Story shared successfully",
-        });
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          console.error('Error sharing:', error);
-          toast({
-            title: "Error",
-            description: "Failed to share story",
-            variant: "destructive",
-          });
-        }
-      }
-    } else {
-      setShowShareDialog(true);
-    }
-  };
-
-  const handleCopyLink = async () => {
-    const shareUrl = `${window.location.origin}/shared/${story.share_token}`;
-    await navigator.clipboard.writeText(shareUrl);
-    toast({
-      title: "Link copied!",
-      description: "Share this link with others to let them view your story.",
-    });
-    setShowShareDialog(false);
-  };
-
   return (
     <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm space-y-2">
       {isEditing ? (
@@ -237,57 +194,47 @@ const StoryCard = ({ story, onUpdate }: StoryCardProps) => {
             <p className="text-sm text-muted-foreground text-left">
               {new Date(story.created_at).toLocaleDateString()}
             </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleShare}
-                className="text-atlantic/70 hover:text-atlantic"
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <DropdownMenuItem
-                        onSelect={(e) => e.preventDefault()}
-                        className="text-destructive"
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </DropdownMenuItem>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action will move this story to the archive. You can't undo this action.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
                         Delete
-                      </DropdownMenuItem>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action will move this story to the archive. You can't undo this action.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogAction
-                          onClick={handleDelete}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                      </AlertDialogAction>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           {story.title && (
             <h3 className="font-semibold text-lg text-left">{story.title}</h3>
@@ -299,31 +246,6 @@ const StoryCard = ({ story, onUpdate }: StoryCardProps) => {
           <StoryMedia storyId={story.id} />
         </>
       )}
-
-      <AlertDialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Share your story</AlertDialogTitle>
-            <AlertDialogDescription>
-              Copy this link to share your story with others.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex items-center gap-2">
-            <Input
-              readOnly
-              value={`${window.location.origin}/shared/${story.share_token}`}
-              className="flex-1"
-            />
-            <Button onClick={handleCopyLink}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copy
-            </Button>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
