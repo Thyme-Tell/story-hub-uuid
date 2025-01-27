@@ -125,7 +125,7 @@ const BookProgress = ({ profileId }: BookProgressProps) => {
           <h2 className="text-xl font-semibold text-atlantic mb-2 text-left">Great progress!</h2>
           <p className="text-atlantic mb-4 text-left">
             You've completed {currentPages} {currentPages === 1 ? 'page' : 'pages'} of your story. 
-            {!hasReachedThreshold && ` Just ${remainingPages} more ${remainingPages === 1 ? 'page' : 'pages'} until your book is ready to print!`}
+            {!hasReachedThreshold && ` Just ${remainingPages} more ${remainingPages === 1 ? 'page' : 'pages'} until your book can be published!`}
           </p>
           <Progress value={progressPercentage} className="h-2 mb-4" />
           {hasReachedThreshold && (
