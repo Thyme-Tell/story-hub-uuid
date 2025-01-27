@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface BookProgressProps {
   profileId: string;
@@ -39,9 +41,35 @@ const BookProgress = ({ profileId }: BookProgressProps) => {
     return Math.ceil(totalCharacters / 1500);
   };
 
+  const handleOrderBook = async () => {
+    try {
+      const response = await fetch('https://pohnhzxqorelllbfnqyj.supabase.co/functions/v1/send-book-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          profileId,
+          email: 'mia@narrastory.com'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send order notification');
+      }
+
+      toast.success("Your book order has been submitted!");
+    } catch (error) {
+      console.error('Error sending book order:', error);
+      toast.error("Failed to submit book order. Please try again.");
+    }
+  };
+
   const currentPages = calculatePages(stories);
-  const requiredPages = 25;
+  const requiredPages = 50;
   const remainingPages = Math.max(0, requiredPages - currentPages);
+  const hasReachedThreshold = currentPages >= requiredPages;
 
   const progressPercentage = Math.min((currentPages / requiredPages) * 100, 100);
 
@@ -102,9 +130,17 @@ const BookProgress = ({ profileId }: BookProgressProps) => {
           <h2 className="text-xl font-semibold text-atlantic mb-2 text-left">Great progress!</h2>
           <p className="text-atlantic mb-4 text-left">
             You've completed {currentPages} {currentPages === 1 ? 'page' : 'pages'} of your story. 
-            Just {remainingPages} more {remainingPages === 1 ? 'page' : 'pages'} until your book is ready to print!
+            {!hasReachedThreshold && ` Just ${remainingPages} more ${remainingPages === 1 ? 'page' : 'pages'} until your book is ready to print!`}
           </p>
-          <Progress value={progressPercentage} className="h-2" />
+          <Progress value={progressPercentage} className="h-2 mb-4" />
+          {hasReachedThreshold && (
+            <Button 
+              onClick={handleOrderBook}
+              className="w-full bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
+            >
+              Order My Book
+            </Button>
+          )}
         </div>
       </div>
       <button 
