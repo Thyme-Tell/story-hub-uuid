@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface BookProgressProps {
@@ -39,26 +38,6 @@ const BookProgress = ({ profileId }: BookProgressProps) => {
 
     // Using 1500 characters per page as a conservative estimate
     return Math.ceil(totalCharacters / 1500);
-  };
-
-  const handleOrderBook = async () => {
-    try {
-      const { error } = await supabase.functions.invoke('send-book-order', {
-        body: {
-          profileId,
-          email: 'mia@narrastory.com'
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      toast.success("Your book order has been submitted!");
-    } catch (error) {
-      console.error('Error sending book order:', error);
-      toast.error("Failed to submit book order. Please try again.");
-    }
   };
 
   const currentPages = calculatePages(stories);
@@ -128,14 +107,6 @@ const BookProgress = ({ profileId }: BookProgressProps) => {
             {!hasReachedThreshold && ` Just ${remainingPages} more ${remainingPages === 1 ? 'page' : 'pages'} until your book can be published!`}
           </p>
           <Progress value={progressPercentage} className="h-2 mb-4" />
-          {hasReachedThreshold && (
-            <Button 
-              onClick={handleOrderBook}
-              className="w-full bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
-            >
-              Order My Book
-            </Button>
-          )}
         </div>
       </div>
       <button 
