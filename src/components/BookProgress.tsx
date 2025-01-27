@@ -43,20 +43,15 @@ const BookProgress = ({ profileId }: BookProgressProps) => {
 
   const handleOrderBook = async () => {
     try {
-      const response = await fetch('https://pohnhzxqorelllbfnqyj.supabase.co/functions/v1/send-book-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
+      const { error } = await supabase.functions.invoke('send-book-order', {
+        body: {
           profileId,
           email: 'mia@narrastory.com'
-        }),
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send order notification');
+      if (error) {
+        throw error;
       }
 
       toast.success("Your book order has been submitted!");
