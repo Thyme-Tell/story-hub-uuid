@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import FormField from "@/components/FormField";
@@ -29,15 +30,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
-      toast({
-        title: "Error",
-        description: "Title is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    
     if (!isAuthenticated || !profileId) {
       toast({
         title: "Authentication Required",
@@ -46,6 +39,15 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       });
       setOpen(false);
       navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
+      return;
+    }
+
+    if (!title.trim()) {
+      toast({
+        title: "Error",
+        description: "Title is required",
+        variant: "destructive",
+      });
       return;
     }
 
