@@ -28,6 +28,18 @@ const Profile = () => {
   }
 
   useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        navigate('/storybooks');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [navigate]);
+
+  useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
