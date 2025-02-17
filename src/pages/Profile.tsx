@@ -21,12 +21,6 @@ const Profile = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  const isValidUUID = id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
-  if (!isValidUUID && !window.location.pathname.includes('/sign-in')) {
-    return <Navigate to="/sign-in" replace />;
-  }
-
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
@@ -42,6 +36,12 @@ const Profile = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const isValidUUID = id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  if (!isValidUUID && !window.location.pathname.includes('/sign-in')) {
+    return <Navigate to="/sign-in" replace />;
+  }
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ["profile", id],
@@ -148,7 +148,7 @@ const Profile = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem onClick={handleLogout} className="text-[#A33D29]">
-              Not {profile.first_name}? Log Out
+              Not {profile?.first_name}? Log Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -157,9 +157,9 @@ const Profile = () => {
         <div className="max-w-2xl mx-auto space-y-6">
           <BookProgress profileId={id} />
           <ProfileHeader 
-            firstName={profile.first_name} 
-            lastName={profile.last_name}
-            profileId={profile.id}
+            firstName={profile?.first_name} 
+            lastName={profile?.last_name}
+            profileId={profile?.id}
             onUpdate={refetchStories}
           />
           
