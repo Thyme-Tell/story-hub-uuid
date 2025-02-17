@@ -22,16 +22,31 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
   const navigate = useNavigate();
   const { isAuthenticated, profileId, checkAuth } = useAuth();
 
+  // Check auth when modal opens
   useEffect(() => {
-    if (open) {
-      checkAuth();
-    }
-  }, [open, checkAuth]);
+    const checkAuthentication = async () => {
+      if (open) {
+        console.log("Modal opened, checking auth...");
+        const isAuthed = await checkAuth();
+        console.log("Auth check result:", { isAuthed, profileId });
+        
+        if (!isAuthed) {
+          console.log("Not authenticated, redirecting to sign-in...");
+          setOpen(false);
+          navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
+        }
+      }
+    };
+    
+    checkAuthentication();
+  }, [open, checkAuth, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    console.log("Form submitted, checking auth state:", { isAuthenticated, profileId });
+
     if (!isAuthenticated || !profileId) {
+      console.log("Not authenticated during submit, redirecting...");
       toast({
         title: "Authentication Required",
         description: "Please sign in to create a storybook",
@@ -43,6 +58,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     }
 
     if (!title.trim()) {
+      console.log("Title is empty");
       toast({
         title: "Error",
         description: "Title is required",
@@ -52,13 +68,10 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     }
 
     setIsLoading(true);
+    console.log("Starting storybook creation...");
 
     try {
-      console.log("Creating storybook with data:", {
-        title: title.trim(),
-        description: description.trim() || null,
-      });
-      
+      // First create the storybook
       const { data: storybook, error: storybookError } = await supabase
         .from("storybooks")
         .insert({ 
@@ -80,6 +93,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
 
       console.log("Storybook created successfully:", storybook);
 
+      // Then create the membership
       const { error: memberError } = await supabase
         .from("storybook_members")
         .insert({
