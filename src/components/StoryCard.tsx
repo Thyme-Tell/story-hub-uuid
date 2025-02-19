@@ -45,7 +45,7 @@ const StoryCard = ({ story, onUpdate }: StoryCardProps) => {
     : null;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+    <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm overflow-hidden border border-atlantic/5">
       {isEditing ? (
         <StoryEditForm
           initialTitle={story.title || ""}
@@ -55,7 +55,7 @@ const StoryCard = ({ story, onUpdate }: StoryCardProps) => {
           onCancel={() => setIsEditing(false)}
         />
       ) : (
-        <div className="space-y-4">
+        <div>
           <StoryHeader
             date={story.created_at}
             onEdit={() => setIsEditing(true)}

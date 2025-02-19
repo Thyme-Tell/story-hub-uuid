@@ -3,10 +3,11 @@ import { useState } from "react";
 import StoryMediaUpload from "./StoryMediaUpload";
 import StoryMedia from "./StoryMedia";
 import { Button } from "@/components/ui/button";
-import { Headphones } from "lucide-react";
+import { Headphones, Plus } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { useStoryAudio } from "@/hooks/useStoryAudio";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { format } from "date-fns";
 
 interface StoryContentProps {
   title: string | null;
@@ -29,28 +30,50 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
 
   return (
     <div className="px-6 pb-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col mb-8">
         {title && (
-          <h3 className="font-semibold text-2xl text-[#242F3F]">{title}</h3>
+          <div className="space-y-2 mb-6">
+            <h1 className="font-caslon text-4xl font-bold text-atlantic">{title}</h1>
+            <div className="flex justify-between items-center">
+              <time className="text-sm text-atlantic/70 uppercase tracking-wider">
+                JUL 11, 1990
+              </time>
+              <span className="text-sm text-atlantic/70">Mia Peroff</span>
+            </div>
+          </div>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleListen}
-          disabled={isLoading}
-          className="ml-auto"
-        >
-          {isLoading ? (
-            <LoadingSpinner className="mr-2 h-4 w-4" />
-          ) : (
-            <Headphones className="mr-2 h-4 w-4" />
-          )}
-          Listen
-        </Button>
+        
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleListen}
+            disabled={isLoading}
+            className="rounded-full px-4 py-2 border-atlantic/20 hover:border-atlantic/40 transition-colors"
+          >
+            {isLoading ? (
+              <LoadingSpinner className="mr-2 h-4 w-4" />
+            ) : (
+              <Headphones className="mr-2 h-4 w-4" />
+            )}
+            Listen
+            <span className="mx-2 text-atlantic/40">·</span>
+            <span>5m</span>
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-full w-8 h-8 border-atlantic/20 hover:border-atlantic/40 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">Record audio</span>
+          </Button>
+        </div>
       </div>
       
       {showPlayer && audioUrl && (
-        <div className="mb-6">
+        <div className="mb-8">
           <AudioPlayer audioUrl={audioUrl} onPlay={updatePlaybackStats} />
         </div>
       )}
@@ -59,7 +82,7 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
         {paragraphs.map((paragraph, index) => (
           <p 
             key={index} 
-            className="text-[#242F3F] text-lg leading-relaxed mb-4 font-caslon"
+            className="text-atlantic text-lg leading-relaxed mb-6 font-caslon"
           >
             {paragraph}
           </p>
