@@ -19,6 +19,7 @@ export default {
 		extend: {
 			fontFamily: {
 				rosemartin: ['Rosemartin', 'serif'],
+				caslon: ['Adobe Caslon Pro', 'Georgia', 'serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',

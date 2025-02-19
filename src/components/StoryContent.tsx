@@ -59,7 +59,7 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
         {paragraphs.map((paragraph, index) => (
           <p 
             key={index} 
-            className="text-[#242F3F] text-lg leading-relaxed mb-4 font-['Georgia']"
+            className="text-[#242F3F] text-lg leading-relaxed mb-4 font-caslon"
           >
             {paragraph}
           </p>
