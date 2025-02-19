@@ -28,10 +28,10 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
   };
 
   return (
-    <>
-      <div className="flex justify-between items-center mb-4">
+    <div className="px-6 pb-6">
+      <div className="flex justify-between items-center mb-6">
         {title && (
-          <h3 className="font-semibold text-lg text-left">{title}</h3>
+          <h3 className="font-semibold text-2xl text-[#242F3F]">{title}</h3>
         )}
         <Button
           variant="outline"
@@ -50,24 +50,27 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
       </div>
       
       {showPlayer && audioUrl && (
-        <div className="mb-4">
+        <div className="mb-6">
           <AudioPlayer audioUrl={audioUrl} onPlay={updatePlaybackStats} />
         </div>
       )}
       
-      <div className="text-atlantic text-left">
+      <div className="prose prose-stone max-w-none">
         {paragraphs.map((paragraph, index) => (
-          <p key={index} className="whitespace-pre-wrap mb-[10px]">
+          <p 
+            key={index} 
+            className="text-[#242F3F] text-lg leading-relaxed mb-4 font-['Georgia']"
+          >
             {paragraph}
           </p>
         ))}
       </div>
       
-      <div className="mt-[30px] mb-[20px]">
+      <div className="mt-8 mb-4">
         <StoryMediaUpload storyId={storyId} onUploadComplete={onUpdate} />
       </div>
       <StoryMedia storyId={storyId} />
-    </>
+    </div>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useStoryOperations } from "./story/StoryOperations";
 import StoryEditForm from "./StoryEditForm";
@@ -44,7 +45,7 @@ const StoryCard = ({ story, onUpdate }: StoryCardProps) => {
     : null;
 
   return (
-    <div className="p-4 pb-12 rounded-lg border bg-card text-card-foreground shadow-sm space-y-2">
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
       {isEditing ? (
         <StoryEditForm
           initialTitle={story.title || ""}
@@ -54,7 +55,7 @@ const StoryCard = ({ story, onUpdate }: StoryCardProps) => {
           onCancel={() => setIsEditing(false)}
         />
       ) : (
-        <>
+        <div className="space-y-4">
           <StoryHeader
             date={story.created_at}
             onEdit={() => setIsEditing(true)}
@@ -67,7 +68,7 @@ const StoryCard = ({ story, onUpdate }: StoryCardProps) => {
             storyId={story.id}
             onUpdate={onUpdate}
           />
-        </>
+        </div>
       )}
 
       <ShareDialog

@@ -1,3 +1,4 @@
+
 import StoryCard from "./StoryCard";
 
 interface Story {
@@ -16,11 +17,11 @@ interface StoriesListProps {
 
 const StoriesList = ({ stories, isLoading, onUpdate }: StoriesListProps) => {
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading stories...</p>;
+    return <p className="text-muted-foreground text-center">Loading stories...</p>;
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       {stories?.map((story) => (
         <StoryCard 
           key={story.id} 
