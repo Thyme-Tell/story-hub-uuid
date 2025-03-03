@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 interface StoryContentProps {
   title: string | null;
@@ -25,21 +26,32 @@ interface StoryContentProps {
 
 const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) => {
   const [showPlayer, setShowPlayer] = useState(false);
+  const { toast } = useToast();
   const { 
     isLoading, 
     audioUrl, 
     isPersonalized,
     generateAudio, 
-    updatePlaybackStats 
+    updatePlaybackStats,
+    error 
   } = useStoryAudio(storyId);
   
   const paragraphs = content.split('\n').filter(p => p.trim() !== '');
 
   const handleListen = async (usePersonalizedVoice = false) => {
-    if (!audioUrl || (usePersonalizedVoice !== isPersonalized)) {
-      await generateAudio({ usePersonalizedVoice });
+    try {
+      if (!audioUrl || (usePersonalizedVoice !== isPersonalized)) {
+        await generateAudio({ usePersonalizedVoice });
+      }
+      setShowPlayer(true);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to generate audio. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error in handleListen:", err);
     }
-    setShowPlayer(true);
   };
 
   return (
