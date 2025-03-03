@@ -40,18 +40,22 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
 
   const handleListen = async (usePersonalizedVoice = false) => {
     try {
-      if (!audioUrl || (usePersonalizedVoice !== isPersonalized)) {
-        const result = await generateAudio({ usePersonalizedVoice });
-        if (result?.error) {
-          throw new Error(result.error);
-        }
+      console.log("handleListen called with usePersonalizedVoice:", usePersonalizedVoice);
+      
+      // Always attempt to generate new audio based on the voice type selected
+      const result = await generateAudio({ usePersonalizedVoice });
+      
+      if (result?.error) {
+        console.error("Error generating audio:", result.error);
+        throw new Error(result.error);
       }
+      
       setShowPlayer(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error in handleListen:", err);
       toast({
         title: "Error",
-        description: "Failed to generate audio. Please try again.",
+        description: `Failed to generate audio: ${err.message || "Unknown error"}`,
         variant: "destructive",
       });
     }

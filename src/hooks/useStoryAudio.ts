@@ -17,23 +17,8 @@ export const useStoryAudio = (storyId: string) => {
     try {
       console.log(`Generating audio for story ${storyId}, usePersonalizedVoice: ${options?.usePersonalizedVoice}`);
       
-      // First check if audio already exists to avoid duplicate entries
-      const { data: existingAudio } = await supabase
-        .from('story_audio')
-        .select('id')
-        .eq('story_id', storyId)
-        .maybeSingle();
-        
-      // If audio exists for this story, delete it first to avoid conflict
-      if (existingAudio) {
-        console.log("Existing audio found, deleting before regenerating");
-        await supabase
-          .from('story_audio')
-          .delete()
-          .eq('story_id', storyId);
-      }
-      
-      // Now generate the new audio
+      // Generate the audio via the edge function
+      // The edge function now handles deleting previous audio records
       const { data, error } = await supabase.functions.invoke('story-tts', {
         body: { 
           storyId, 

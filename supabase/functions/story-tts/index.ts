@@ -1,11 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.9.1";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -67,6 +63,17 @@ serve(async (req) => {
     } else if (voiceId) {
       selectedVoiceId = voiceId;
       console.log("Using specified voice:", selectedVoiceId);
+    }
+
+    // Delete any existing audio for this story
+    const { error: deleteError } = await supabase
+      .from('story_audio')
+      .delete()
+      .eq('story_id', storyId);
+    
+    if (deleteError) {
+      console.warn("Error deleting existing audio records:", deleteError);
+      // Continue anyway, as this shouldn't stop the process
     }
 
     // Generate audio using ElevenLabs API
