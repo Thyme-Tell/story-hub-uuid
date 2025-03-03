@@ -9,15 +9,17 @@ import {
   SkipForward,
   Volume2,
   Volume1,
-  VolumeX
+  VolumeX,
+  User
 } from 'lucide-react';
 
 interface AudioPlayerProps {
   audioUrl: string;
   onPlay?: () => void;
+  isPersonalized?: boolean;
 }
 
-const AudioPlayer = ({ audioUrl, onPlay }: AudioPlayerProps) => {
+const AudioPlayer = ({ audioUrl, onPlay, isPersonalized }: AudioPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -95,6 +97,13 @@ const AudioPlayer = ({ audioUrl, onPlay }: AudioPlayerProps) => {
   return (
     <div className="w-full max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-4 space-y-4">
       <audio ref={audioRef} src={audioUrl} />
+      
+      {isPersonalized && (
+        <div className="flex items-center text-[#A33D29] text-sm mb-2">
+          <User className="h-3 w-3 mr-1" />
+          <span>Playing with storyteller's voice</span>
+        </div>
+      )}
       
       <div className="flex items-center justify-between space-x-4">
         <div className="flex items-center space-x-2">

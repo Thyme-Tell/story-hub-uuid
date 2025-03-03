@@ -1,3 +1,4 @@
+
 import { useParams, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,21 +6,25 @@ import { Link, useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/ProfileHeader";
 import StoriesList from "@/components/StoriesList";
 import BookProgress from "@/components/BookProgress";
-import { Menu } from "lucide-react";
-import { useEffect } from "react";
+import { Menu, User, Mic, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [hasVoice, setHasVoice] = useState<boolean | null>(null);
 
   const isValidUUID = id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
@@ -38,7 +43,7 @@ const Profile = () => {
       
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, created_at")
+        .select("id, first_name, last_name, created_at, synthflow_voice_id")
         .eq("id", id)
         .maybeSingle();
 
@@ -46,6 +51,9 @@ const Profile = () => {
         console.error("Error fetching profile:", error);
         return null;
       }
+      
+      // Set the voice status
+      setHasVoice(!!data?.synthflow_voice_id);
       
       return data;
     },
@@ -88,6 +96,16 @@ const Profile = () => {
       return;
     }
     navigate('/');
+  };
+
+  const requestVoiceSetup = async () => {
+    toast({
+      title: "Voice setup",
+      description: "We'll contact you to set up your personalized voice for storytelling.",
+    });
+    
+    // Here you could implement an actual contact request
+    // For now we'll just show a notification
   };
 
   if (isLoadingProfile) {
@@ -134,7 +152,25 @@ const Profile = () => {
               <span className="sr-only">Open menu</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-64">
+            {hasVoice === false && (
+              <>
+                <DropdownMenuItem onClick={requestVoiceSetup} className="text-[#A33D29] flex items-center">
+                  <Mic className="mr-2 h-4 w-4" />
+                  Set up your storyteller voice
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            {hasVoice === true && (
+              <>
+                <div className="flex items-center px-2 py-1.5 text-sm">
+                  <User className="mr-2 h-4 w-4 text-[#A33D29]" />
+                  <span>Personalized voice is active</span>
+                </div>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={handleLogout} className="text-[#A33D29]">
               Not {profile.first_name}? Log Out
             </DropdownMenuItem>

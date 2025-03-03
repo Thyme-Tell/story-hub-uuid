@@ -7,25 +7,33 @@ export const useStoryAudio = (storyId: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isPersonalized, setIsPersonalized] = useState(false);
   const { toast } = useToast();
 
-  const generateAudio = useCallback(async (voiceId?: string) => {
+  const generateAudio = useCallback(async (options?: { voiceId?: string, usePersonalizedVoice?: boolean }) => {
     setIsLoading(true);
     setError(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('story-tts', {
-        body: { storyId, voiceId },
+        body: { 
+          storyId, 
+          voiceId: options?.voiceId,
+          usePersonalizedVoice: options?.usePersonalizedVoice 
+        },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
       setAudioUrl(data.audioUrl);
+      setIsPersonalized(data.isPersonalized || false);
       
       toast({
         title: "Success",
-        description: "Audio generated successfully",
+        description: data.isPersonalized 
+          ? "Audio generated with storyteller's voice" 
+          : "Audio generated successfully",
       });
     } catch (err) {
       console.error('Error generating audio:', err);
@@ -45,13 +53,14 @@ export const useStoryAudio = (storyId: string) => {
       try {
         const { data, error } = await supabase
           .from('story_audio')
-          .select('audio_url')
+          .select('audio_url, audio_type')
           .eq('story_id', storyId)
           .maybeSingle();
 
         if (error) throw error;
         if (data?.audio_url) {
           setAudioUrl(data.audio_url);
+          setIsPersonalized(data.audio_type === 'personalized');
         }
       } catch (err) {
         console.error('Error fetching audio:', err);
@@ -88,6 +97,7 @@ export const useStoryAudio = (storyId: string) => {
   return {
     isLoading,
     audioUrl,
+    isPersonalized,
     error,
     generateAudio,
     updatePlaybackStats,
