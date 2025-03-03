@@ -69,16 +69,40 @@ serve(async (req) => {
       }
     }
 
-    // Remove any existing audio for this story
-    const { error: deleteError } = await supabase
-      .from('story_audio')
-      .delete()
-      .eq('story_id', storyId)
-      .eq('is_personalized', isPersonalized);
+    // Check if the story_audio table has an is_personalized column
+    let hasIsPersonalizedColumn = true;
+    try {
+      // Try a dummy query just to check if the column exists
+      await supabase
+        .from('story_audio')
+        .select('is_personalized')
+        .limit(1);
+    } catch (error) {
+      if (error.message && error.message.includes("column 'is_personalized' does not exist")) {
+        hasIsPersonalizedColumn = false;
+        console.log("is_personalized column doesn't exist, using audio_type instead");
+      } else {
+        // If it's some other error, re-throw it
+        throw error;
+      }
+    }
 
-    if (deleteError) {
-      console.error(`Failed to delete existing audio: ${deleteError.message}`);
-      // Continue anyway, not critical
+    // Delete existing audio for this story
+    if (hasIsPersonalizedColumn) {
+      // If we have the is_personalized column
+      await supabase
+        .from('story_audio')
+        .delete()
+        .eq('story_id', storyId)
+        .eq('is_personalized', isPersonalized);
+    } else {
+      // Use audio_type instead
+      const audioType = isPersonalized ? 'personalized' : 'standard';
+      await supabase
+        .from('story_audio')
+        .delete()
+        .eq('story_id', storyId)
+        .eq('audio_type', audioType);
     }
 
     // Call ElevenLabs API
@@ -140,14 +164,21 @@ serve(async (req) => {
       .getPublicUrl(filename);
 
     // Save the audio URL to the database
-    const { data: audioRecord, error: audioError } = await supabase
+    const audioRecord = {
+      story_id: storyId,
+      audio_url: publicUrl,
+      audio_type: isPersonalized ? 'personalized' : 'standard',
+      created_at: new Date().toISOString(),
+    };
+
+    // Add is_personalized field if the column exists
+    if (hasIsPersonalizedColumn) {
+      audioRecord.is_personalized = isPersonalized;
+    }
+
+    const { data: savedRecord, error: audioError } = await supabase
       .from('story_audio')
-      .insert({
-        story_id: storyId,
-        audio_url: publicUrl,
-        is_personalized: isPersonalized,
-        created_at: new Date().toISOString(),
-      })
+      .insert(audioRecord)
       .select()
       .single();
 
@@ -189,4 +220,3 @@ serve(async (req) => {
     );
   }
 });
-
