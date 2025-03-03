@@ -1,4 +1,3 @@
-
 import { useParams, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/ProfileHeader";
 import StoriesList from "@/components/StoriesList";
 import BookProgress from "@/components/BookProgress";
-import { Menu, User, Mic, AlertCircle } from "lucide-react";
+import { Menu, User, Mic, AlertCircle, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   DropdownMenu,
@@ -25,6 +24,7 @@ interface ProfileData {
   last_name: string;
   created_at: string;
   synthflow_voice_id: string | null;
+  elevenlabs_voice_id: string | null;
 }
 
 const Profile = () => {
@@ -33,6 +33,7 @@ const Profile = () => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [hasVoice, setHasVoice] = useState<boolean | null>(null);
+  const [isTransferringVoice, setIsTransferringVoice] = useState(false);
 
   const isValidUUID = id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
@@ -44,23 +45,26 @@ const Profile = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+  const { data: profile, isLoading: isLoadingProfile, refetch: refetchProfile } = useQuery({
     queryKey: ["profile", id],
     queryFn: async () => {
       if (!isValidUUID) return null;
       
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, created_at, synthflow_voice_id")
+        .select("id, first_name, last_name, created_at, synthflow_voice_id, elevenlabs_voice_id")
         .eq("id", id)
         .maybeSingle();
 
       if (error) {
-        // Check if the error is about the missing column
-        if (error.message && error.message.includes("column 'synthflow_voice_id' does not exist")) {
-          console.warn("The synthflow_voice_id column doesn't exist yet");
+        // Check if the error is about the missing columns
+        if (error.message && (
+            error.message.includes("column 'synthflow_voice_id' does not exist") ||
+            error.message.includes("column 'elevenlabs_voice_id' does not exist")
+        )) {
+          console.warn("One or more voice ID columns don't exist yet");
           
-          // Get the profile without the synthflow_voice_id column
+          // Get the profile without the voice ID columns
           const { data: profileWithoutVoice, error: profileError } = await supabase
             .from("profiles")
             .select("id, first_name, last_name, created_at")
@@ -72,13 +76,14 @@ const Profile = () => {
             return null;
           }
           
-          // Set voice status to false since column doesn't exist
+          // Set voice status to false since columns don't exist
           setHasVoice(false);
           
-          // Return the profile with an added null synthflow_voice_id
+          // Return the profile with added null voice IDs
           return {
             ...profileWithoutVoice,
-            synthflow_voice_id: null
+            synthflow_voice_id: null,
+            elevenlabs_voice_id: null
           } as ProfileData;
         } else {
           console.error("Error fetching profile:", error);
@@ -87,7 +92,7 @@ const Profile = () => {
       }
       
       // Set the voice status
-      setHasVoice(!!data?.synthflow_voice_id);
+      setHasVoice(!!(data?.synthflow_voice_id || data?.elevenlabs_voice_id));
       
       return data as ProfileData;
     },
@@ -140,6 +145,45 @@ const Profile = () => {
     
     // Here you could implement an actual contact request
     // For now we'll just show a notification
+  };
+
+  const transferVoiceToElevenLabs = async () => {
+    if (!profile?.synthflow_voice_id) {
+      toast({
+        title: "Voice transfer failed",
+        description: "No Synthflow voice found to transfer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTransferringVoice(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('transfer-voice', {
+        body: { profileId: profile.id },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast({
+        title: "Voice transfer complete",
+        description: "Your storyteller voice has been transferred to ElevenLabs",
+      });
+      
+      // Refetch profile to get updated voice ID
+      refetchProfile();
+    } catch (err) {
+      console.error('Error transferring voice:', err);
+      toast({
+        title: "Voice transfer failed",
+        description: err.message || "Failed to transfer voice to ElevenLabs",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTransferringVoice(false);
+    }
   };
 
   if (isLoadingProfile) {
@@ -196,7 +240,26 @@ const Profile = () => {
                 <DropdownMenuSeparator />
               </>
             )}
-            {hasVoice === true && (
+            
+            {profile?.synthflow_voice_id && !profile?.elevenlabs_voice_id && (
+              <>
+                <DropdownMenuItem 
+                  onClick={transferVoiceToElevenLabs} 
+                  disabled={isTransferringVoice}
+                  className="text-[#A33D29] flex items-center"
+                >
+                  {isTransferringVoice ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mic className="mr-2 h-4 w-4" />
+                  )}
+                  Transfer voice to ElevenLabs
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            
+            {profile?.elevenlabs_voice_id && (
               <>
                 <div className="flex items-center px-2 py-1.5 text-sm">
                   <User className="mr-2 h-4 w-4 text-[#A33D29]" />
@@ -205,6 +268,7 @@ const Profile = () => {
                 <DropdownMenuSeparator />
               </>
             )}
+            
             <DropdownMenuItem onClick={handleLogout} className="text-[#A33D29]">
               Not {profile?.first_name}? Log Out
             </DropdownMenuItem>
