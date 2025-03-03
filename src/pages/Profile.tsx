@@ -48,8 +48,34 @@ const Profile = () => {
         .maybeSingle();
 
       if (error) {
-        console.error("Error fetching profile:", error);
-        return null;
+        // Check if the error is about the missing column
+        if (error.message && error.message.includes("column 'synthflow_voice_id' does not exist")) {
+          console.warn("The synthflow_voice_id column doesn't exist yet");
+          
+          // Get the profile without the synthflow_voice_id column
+          const { data: profileWithoutVoice, error: profileError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, created_at")
+            .eq("id", id)
+            .maybeSingle();
+            
+          if (profileError) {
+            console.error("Error fetching profile:", profileError);
+            return null;
+          }
+          
+          // Set voice status to false since column doesn't exist
+          setHasVoice(false);
+          
+          // Return the profile with an added null synthflow_voice_id
+          return {
+            ...profileWithoutVoice,
+            synthflow_voice_id: null
+          };
+        } else {
+          console.error("Error fetching profile:", error);
+          return null;
+        }
       }
       
       // Set the voice status
@@ -172,7 +198,7 @@ const Profile = () => {
               </>
             )}
             <DropdownMenuItem onClick={handleLogout} className="text-[#A33D29]">
-              Not {profile.first_name}? Log Out
+              Not {profile?.first_name}? Log Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -180,12 +206,14 @@ const Profile = () => {
       <div className="p-4">
         <div className="max-w-2xl mx-auto space-y-6">
           <BookProgress profileId={id} />
-          <ProfileHeader 
-            firstName={profile.first_name} 
-            lastName={profile.last_name}
-            profileId={profile.id}
-            onUpdate={refetchStories}
-          />
+          {profile && (
+            <ProfileHeader 
+              firstName={profile.first_name} 
+              lastName={profile.last_name}
+              profileId={profile.id}
+              onUpdate={refetchStories}
+            />
+          )}
           
           <div>
             <p className="text-muted-foreground mb-[15px] text-left">

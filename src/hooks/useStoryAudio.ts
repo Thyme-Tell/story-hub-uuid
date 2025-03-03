@@ -57,8 +57,19 @@ export const useStoryAudio = (storyId: string) => {
           .eq('story_id', storyId)
           .maybeSingle();
 
-        if (error) throw error;
-        if (data?.audio_url) {
+        if (error) {
+          // If error is about missing column, just continue without setting values
+          if (error.message && error.message.includes("column 'audio_type' does not exist")) {
+            console.warn("The audio_type column doesn't exist yet, using standard values");
+            // Check if data exists and has an audio_url despite the column error
+            if (data && typeof data === 'object' && 'audio_url' in data) {
+              setAudioUrl(data.audio_url as string);
+              setIsPersonalized(false); // Default to standard voice
+            }
+          } else {
+            throw error;
+          }
+        } else if (data) {
           setAudioUrl(data.audio_url);
           setIsPersonalized(data.audio_type === 'personalized');
         }
