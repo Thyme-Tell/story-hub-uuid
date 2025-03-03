@@ -2,7 +2,6 @@
 # A string used to distinguish different Supabase projects on the same host. Defaults to the working
 # directory name when running `supabase init`.
 project_id = "pohnhzxqorelllbfnqyj"
-org_id = "1"
 
 [api]
 # Port to use for the API URL.
@@ -50,11 +49,6 @@ additional_redirect_urls = ["https://lovable.dev"]
 jwt_expiry = 3600
 # Allow/disallow new user signups to your project.
 enable_signup = true
-# If enabled, a user will be required to confirm any email change on both the old, and new email
-# addresses. If disabled, only the new email is required to confirm.
-double_confirm_changes = true
-# If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
 
 # Configure Storage
 [storage.buckets]
@@ -64,25 +58,10 @@ story_audio = { public = true }
 [auth.email]
 # Allow/disallow new user signups via email to your project.
 enable_signup = true
-# If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
-
-# Use custom templates for emails
-[auth.email.templates]
-invite = ""
-
-[auth.email.template.invite]
-subject = "You have been invited to join Narra"
-content_path = ""
-content = ""
-html_content_path = ""
-html_content = ""
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.
 enable_signup = true
-# If enabled, users need to confirm their phone number before signing in.
-enable_confirmations = false
 
 [auth.sms.twilio]
 account_sid = ""
@@ -178,3 +157,4 @@ url = ""
 enabled = false
 client_id = ""
 secret = ""
+
