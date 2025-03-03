@@ -14,6 +14,7 @@ serve(async (req) => {
 
   try {
     const { storyId, voiceId = "21m00Tcm4TlvDq8ikWAM", usePersonalizedVoice = false } = await req.json()
+    console.log(`Processing TTS request for story ${storyId}, usePersonalizedVoice: ${usePersonalizedVoice}`)
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -55,11 +56,14 @@ serve(async (req) => {
 
     let audioResponse;
     let audioType = 'standard';
+    let voiceUsed = voiceId;
 
     // If we have a Synthflow voice ID, use it with ElevenLabs
     if (synthflowVoiceId) {
       try {
         audioType = 'personalized';
+        console.log("Requesting Synthflow voice redirect")
+        
         // Call Synthflow to use the personalized voice
         const synthflowResponse = await fetch(
           `https://api.synthflow.ai/v1/voices/${synthflowVoiceId}/elevenlabs-redirect`,
@@ -76,11 +80,14 @@ serve(async (req) => {
         }
 
         const synthflowData = await synthflowResponse.json();
+        console.log("Received voice ID from Synthflow:", synthflowData.voice_id);
         
         // Use the provided voice ID from Synthflow with ElevenLabs
         const elevenlabsVoiceId = synthflowData.voice_id;
+        voiceUsed = elevenlabsVoiceId;
         
         // Generate audio using ElevenLabs API with the Synthflow voice
+        console.log("Requesting audio generation with personalized voice from ElevenLabs")
         audioResponse = await fetch(
           `https://api.elevenlabs.io/v1/text-to-speech/${elevenlabsVoiceId}`,
           {
@@ -100,6 +107,13 @@ serve(async (req) => {
             }),
           }
         );
+        
+        if (!audioResponse.ok) {
+          const errorData = await audioResponse.text();
+          console.error("ElevenLabs personalized voice error:", errorData);
+          throw new Error(`ElevenLabs error with personalized voice: ${audioResponse.status}`);
+        }
+        
       } catch (error) {
         console.error('Error using personalized voice:', error);
         // Fall back to default voice if personalized voice fails
@@ -110,6 +124,7 @@ serve(async (req) => {
 
     // If personalized voice failed or wasn't requested, use standard voice
     if (!audioResponse) {
+      console.log(`Using standard voice with ID: ${voiceId}`);
       audioResponse = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
         {
@@ -129,15 +144,18 @@ serve(async (req) => {
           }),
         }
       );
-    }
-
-    if (!audioResponse.ok) {
-      const error = await audioResponse.json();
-      throw new Error(error.message || 'Failed to generate audio');
+      
+      if (!audioResponse.ok) {
+        const errorData = await audioResponse.text();
+        console.error("ElevenLabs standard voice error:", errorData);
+        throw new Error(`ElevenLabs error with standard voice: ${audioResponse.status}`);
+      }
     }
 
     // Get the audio data
+    console.log("Processing audio response")
     const audioBuffer = await audioResponse.arrayBuffer();
+    console.log(`Received audio buffer of size: ${audioBuffer.byteLength} bytes`);
 
     // Upload to Supabase Storage
     const fileName = `${storyId}-${Date.now()}.mp3`;
@@ -150,8 +168,11 @@ serve(async (req) => {
       });
 
     if (uploadError) {
+      console.error("Upload error:", uploadError);
       throw new Error('Failed to upload audio');
     }
+
+    console.log("Audio file uploaded successfully");
 
     // Get the public URL
     const { data: { publicUrl } } = supabase
@@ -165,15 +186,17 @@ serve(async (req) => {
       .insert({
         story_id: storyId,
         audio_url: publicUrl,
-        voice_id: synthflowVoiceId || voiceId,
+        voice_id: voiceUsed,
         audio_type: audioType,
         playback_count: 0,
       });
 
     if (metadataError) {
+      console.error("Metadata error:", metadataError);
       throw new Error('Failed to save audio metadata');
     }
 
+    console.log(`Success! Audio type: ${audioType}, URL: ${publicUrl}`);
     return new Response(
       JSON.stringify({ 
         audioUrl: publicUrl,

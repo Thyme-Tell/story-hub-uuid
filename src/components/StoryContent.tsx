@@ -3,7 +3,7 @@ import { useState } from "react";
 import StoryMediaUpload from "./StoryMediaUpload";
 import StoryMedia from "./StoryMedia";
 import { Button } from "@/components/ui/button";
-import { Headphones, User } from "lucide-react";
+import { Headphones, User, Volume2 } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { useStoryAudio } from "@/hooks/useStoryAudio";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -12,7 +12,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface StoryContentProps {
   title: string | null;
@@ -34,7 +36,7 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
   const paragraphs = content.split('\n').filter(p => p.trim() !== '');
 
   const handleListen = async (usePersonalizedVoice = false) => {
-    if (!audioUrl || (usePersonalizedVoice && !isPersonalized)) {
+    if (!audioUrl || (usePersonalizedVoice !== isPersonalized)) {
       await generateAudio({ usePersonalizedVoice });
     }
     setShowPlayer(true);
@@ -53,7 +55,7 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
               variant="outline"
               size="sm"
               disabled={isLoading}
-              className="ml-auto"
+              className="ml-auto flex items-center"
             >
               {isLoading ? (
                 <LoadingSpinner className="mr-2 h-4 w-4" />
@@ -63,13 +65,21 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
               Listen
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleListen(false)}>
-              Standard Voice
+          <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuItem onClick={() => handleListen(false)} className="flex items-center py-2">
+              <Volume2 className="mr-2 h-4 w-4 text-gray-500" />
+              <div>
+                <div>Standard Voice</div>
+                <div className="text-xs text-muted-foreground">Default ElevenLabs voice</div>
+              </div>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleListen(true)}>
-              <User className="mr-2 h-4 w-4" />
-              Storyteller's Voice
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleListen(true)} className="flex items-center py-2">
+              <User className="mr-2 h-4 w-4 text-[#A33D29]" />
+              <div>
+                <div className="text-[#A33D29]">Storyteller's Voice</div>
+                <div className="text-xs text-muted-foreground">Personalized voice of the author</div>
+              </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -77,15 +87,11 @@ const StoryContent = ({ title, content, storyId, onUpdate }: StoryContentProps) 
       
       {showPlayer && audioUrl && (
         <div className="mb-4">
-          <div className="flex items-center mb-2">
-            {isPersonalized && (
-              <span className="text-sm text-[#A33D29] flex items-center mr-2">
-                <User className="h-3 w-3 mr-1" />
-                Storyteller's voice
-              </span>
-            )}
-          </div>
-          <AudioPlayer audioUrl={audioUrl} onPlay={updatePlaybackStats} />
+          <AudioPlayer 
+            audioUrl={audioUrl} 
+            onPlay={updatePlaybackStats} 
+            isPersonalized={isPersonalized} 
+          />
         </div>
       )}
       

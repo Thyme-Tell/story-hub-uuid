@@ -15,6 +15,8 @@ export const useStoryAudio = (storyId: string) => {
     setError(null);
 
     try {
+      console.log(`Generating audio for story ${storyId}, usePersonalizedVoice: ${options?.usePersonalizedVoice}`);
+      
       const { data, error } = await supabase.functions.invoke('story-tts', {
         body: { 
           storyId, 
@@ -26,6 +28,7 @@ export const useStoryAudio = (storyId: string) => {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
+      console.log("TTS response:", data);
       setAudioUrl(data.audioUrl);
       setIsPersonalized(data.isPersonalized || false);
       

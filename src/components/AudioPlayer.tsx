@@ -12,6 +12,7 @@ import {
   VolumeX,
   User
 } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 
 interface AudioPlayerProps {
   audioUrl: string;
@@ -98,10 +99,18 @@ const AudioPlayer = ({ audioUrl, onPlay, isPersonalized }: AudioPlayerProps) => 
     <div className="w-full max-w-2xl mx-auto bg-white shadow-lg rounded-lg p-4 space-y-4">
       <audio ref={audioRef} src={audioUrl} />
       
-      {isPersonalized && (
-        <div className="flex items-center text-[#A33D29] text-sm mb-2">
-          <User className="h-3 w-3 mr-1" />
-          <span>Playing with storyteller's voice</span>
+      {isPersonalized ? (
+        <div className="flex items-center mb-2">
+          <Badge variant="outline" className="bg-[#FFECE8] text-[#A33D29] flex items-center py-1 px-2 border-[#A33D29]">
+            <User className="h-3 w-3 mr-2" />
+            Playing with storyteller's voice
+          </Badge>
+        </div>
+      ) : (
+        <div className="flex items-center mb-2">
+          <Badge variant="outline" className="bg-gray-100 text-gray-600 flex items-center py-1 px-2">
+            Standard voice
+          </Badge>
         </div>
       )}
       
