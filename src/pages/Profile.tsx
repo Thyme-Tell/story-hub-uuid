@@ -19,6 +19,14 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+interface ProfileData {
+  id: string;
+  first_name: string;
+  last_name: string;
+  created_at: string;
+  synthflow_voice_id: string | null;
+}
+
 const Profile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -71,7 +79,7 @@ const Profile = () => {
           return {
             ...profileWithoutVoice,
             synthflow_voice_id: null
-          };
+          } as ProfileData;
         } else {
           console.error("Error fetching profile:", error);
           return null;
@@ -81,7 +89,7 @@ const Profile = () => {
       // Set the voice status
       setHasVoice(!!data?.synthflow_voice_id);
       
-      return data;
+      return data as ProfileData;
     },
     enabled: isValidUUID,
   });

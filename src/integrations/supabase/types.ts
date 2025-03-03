@@ -101,6 +101,7 @@ export type Database = {
           last_name: string
           password: string
           phone_number: string
+          synthflow_voice_id: string | null
           updated_at: string
         }
         Insert: {
@@ -111,6 +112,7 @@ export type Database = {
           last_name: string
           password: string
           phone_number: string
+          synthflow_voice_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -121,6 +123,7 @@ export type Database = {
           last_name?: string
           password?: string
           phone_number?: string
+          synthflow_voice_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -201,6 +204,7 @@ export type Database = {
       }
       story_audio: {
         Row: {
+          audio_type: string | null
           audio_url: string
           created_at: string
           duration_seconds: number | null
@@ -212,6 +216,7 @@ export type Database = {
           voice_id: string | null
         }
         Insert: {
+          audio_type?: string | null
           audio_url: string
           created_at?: string
           duration_seconds?: number | null
@@ -223,6 +228,7 @@ export type Database = {
           voice_id?: string | null
         }
         Update: {
+          audio_type?: string | null
           audio_url?: string
           created_at?: string
           duration_seconds?: number | null
