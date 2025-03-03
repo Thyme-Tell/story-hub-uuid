@@ -50,51 +50,51 @@ const Profile = () => {
     queryFn: async () => {
       if (!isValidUUID) return null;
       
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, created_at, synthflow_voice_id, elevenlabs_voice_id")
-        .eq("id", id)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, created_at, synthflow_voice_id, elevenlabs_voice_id")
+          .eq("id", id)
+          .maybeSingle();
 
-      if (error) {
-        // Check if the error is about the missing columns
-        if (error.message && (
-            error.message.includes("column 'synthflow_voice_id' does not exist") ||
-            error.message.includes("column 'elevenlabs_voice_id' does not exist")
-        )) {
-          console.warn("One or more voice ID columns don't exist yet");
-          
-          // Get the profile without the voice ID columns
-          const { data: profileWithoutVoice, error: profileError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, created_at")
-            .eq("id", id)
-            .maybeSingle();
+        if (error) {
+          if (error.message && (
+              error.message.includes("column 'synthflow_voice_id' does not exist") ||
+              error.message.includes("column 'elevenlabs_voice_id' does not exist")
+          )) {
+            console.warn("One or more voice ID columns don't exist yet");
             
-          if (profileError) {
-            console.error("Error fetching profile:", profileError);
+            const { data: profileWithoutVoice, error: profileError } = await supabase
+              .from("profiles")
+              .select("id, first_name, last_name, created_at")
+              .eq("id", id)
+              .maybeSingle();
+              
+            if (profileError) {
+              console.error("Error fetching profile:", profileError);
+              return null;
+            }
+            
+            setHasVoice(false);
+            
+            return {
+              ...profileWithoutVoice,
+              synthflow_voice_id: null,
+              elevenlabs_voice_id: null
+            } as ProfileData;
+          } else {
+            console.error("Error fetching profile:", error);
             return null;
           }
-          
-          // Set voice status to false since columns don't exist
-          setHasVoice(false);
-          
-          // Return the profile with added null voice IDs
-          return {
-            ...profileWithoutVoice,
-            synthflow_voice_id: null,
-            elevenlabs_voice_id: null
-          } as ProfileData;
-        } else {
-          console.error("Error fetching profile:", error);
-          return null;
         }
+        
+        setHasVoice(!!(data?.synthflow_voice_id || data?.elevenlabs_voice_id));
+        
+        return data as ProfileData;
+      } catch (err) {
+        console.error("Unexpected error fetching profile:", err);
+        return null;
       }
-      
-      // Set the voice status
-      setHasVoice(!!(data?.synthflow_voice_id || data?.elevenlabs_voice_id));
-      
-      return data as ProfileData;
     },
     enabled: isValidUUID,
   });
@@ -172,9 +172,8 @@ const Profile = () => {
         description: "Your storyteller voice has been transferred to ElevenLabs",
       });
       
-      // Refetch profile to get updated voice ID
       refetchProfile();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error transferring voice:', err);
       toast({
         title: "Voice transfer failed",
