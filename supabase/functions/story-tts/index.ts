@@ -1,175 +1,172 @@
 
-// Import required libraries
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.9.1";
 
-// Set CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the request body
-    const { storyId, voiceId, usePersonalizedVoice } = await req.json()
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const elevenLabsApiKey = Deno.env.get("ELEVEN_LABS_API_KEY") || "";
     
-    // Validate required parameters
-    if (!storyId) {
-      throw new Error('Story ID is required')
+    if (!elevenLabsApiKey) {
+      throw new Error("ElevenLabs API key is not configured");
     }
 
-    console.log(`Processing TTS for story: ${storyId}, usePersonalizedVoice: ${usePersonalizedVoice}`)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // Parse the request body
+    const { storyId, voiceId, usePersonalizedVoice = false } = await req.json();
+    console.log("Received request for story:", storyId, "usePersonalizedVoice:", usePersonalizedVoice);
 
-    // Get story content and profile ID
+    if (!storyId) {
+      throw new Error("Story ID is required");
+    }
+
+    // Get the story content
     const { data: story, error: storyError } = await supabase
       .from('stories')
-      .select('content, profile_id')
+      .select('content, profiles(id, elevenlabs_voice_id, synthflow_voice_id)')
       .eq('id', storyId)
-      .single()
+      .single();
 
-    if (storyError) {
-      throw new Error(`Error fetching story: ${storyError.message}`)
-    }
-    
-    if (!story) {
-      throw new Error('Story not found')
+    if (storyError || !story) {
+      console.error("Error fetching story:", storyError);
+      throw new Error(`Failed to fetch story: ${storyError?.message || "Story not found"}`);
     }
 
-    const content = story.content
-    const profileId = story.profile_id
+    const content = story.content;
+    console.log("Story content length:", content.length);
 
     // Determine which voice to use
-    let selectedVoiceId = voiceId || 'EXAVITQu4vr4xnSDxMaL' // Default to Sarah if no voice specified
-    let isPersonalized = false
-
+    let selectedVoiceId = "EXAVITQu4vr4xnSDxMaL"; // Default voice (Sarah)
+    let isPersonalized = false;
+    
     if (usePersonalizedVoice) {
-      // Get profile to check for personalized voice
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('elevenlabs_voice_id, synthflow_voice_id')
-        .eq('id', profileId)
-        .single()
-
-      if (profileError) {
-        console.warn(`Error fetching profile: ${profileError.message}`)
-        // Continue with default voice
-      } else if (profile && profile.elevenlabs_voice_id) {
-        console.log(`Using ElevenLabs personalized voice: ${profile.elevenlabs_voice_id}`)
-        selectedVoiceId = profile.elevenlabs_voice_id
-        isPersonalized = true
-      } else if (profile && profile.synthflow_voice_id) {
-        console.log(`Profile has Synthflow voice but not ElevenLabs voice. Using default voice.`)
-        // Continue with default voice since Synthflow voice can't be used directly
+      // Check if user has a personalized voice
+      if (story.profiles?.elevenlabs_voice_id) {
+        selectedVoiceId = story.profiles.elevenlabs_voice_id;
+        isPersonalized = true;
+        console.log("Using personalized ElevenLabs voice:", selectedVoiceId);
+      } else if (story.profiles?.synthflow_voice_id) {
+        selectedVoiceId = story.profiles.synthflow_voice_id;
+        isPersonalized = true;
+        console.log("Using personalized Synthflow voice:", selectedVoiceId);
+      } else {
+        console.log("No personalized voice found, using default voice");
       }
+    } else if (voiceId) {
+      selectedVoiceId = voiceId;
+      console.log("Using specified voice:", selectedVoiceId);
     }
 
-    // Get Eleven Labs API key
-    const elevenLabsApiKey = Deno.env.get('ELEVEN_LABS_API_KEY')
-    if (!elevenLabsApiKey) {
-      throw new Error('ElevenLabs API key not configured')
+    // Generate audio using ElevenLabs API
+    console.log("Generating audio with ElevenLabs, voice:", selectedVoiceId);
+    const elevenLabsResponse = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
+      {
+        method: "POST",
+        headers: {
+          "Accept": "audio/mpeg",
+          "Content-Type": "application/json",
+          "xi-api-key": elevenLabsApiKey,
+        },
+        body: JSON.stringify({
+          text: content,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+          },
+        }),
+      }
+    );
+
+    if (!elevenLabsResponse.ok) {
+      const errorText = await elevenLabsResponse.text();
+      console.error("ElevenLabs API error:", errorText);
+      throw new Error(`ElevenLabs API error: ${elevenLabsResponse.status} - ${errorText}`);
     }
 
-    // Call Eleven Labs TTS API
-    console.log(`Calling ElevenLabs TTS API with voice: ${selectedVoiceId}`)
-    const ttsResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'audio/mpeg',
-        'xi-api-key': elevenLabsApiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: content,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        }
-      }),
-    })
+    // Get the audio data as a buffer
+    const audioBuffer = await elevenLabsResponse.arrayBuffer();
+    console.log("Received audio data, size:", audioBuffer.byteLength);
 
-    if (!ttsResponse.ok) {
-      const errorText = await ttsResponse.text()
-      throw new Error(`ElevenLabs API error: ${ttsResponse.status} - ${errorText}`)
-    }
-
-    // Get the audio data
-    const audioBuffer = await ttsResponse.arrayBuffer()
-    
-    // Create a unique filename for the audio
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const filename = `story_${storyId}_${timestamp}.mp3`
-    
-    // Upload the audio to Supabase Storage
+    // Upload the audio file to Supabase Storage
+    const fileName = `${storyId}_${Date.now()}.mp3`;
     const { data: uploadData, error: uploadError } = await supabase
       .storage
       .from('story_audio')
-      .upload(filename, audioBuffer, {
+      .upload(fileName, audioBuffer, {
         contentType: 'audio/mpeg',
         cacheControl: '3600',
-      })
-    
+      });
+
     if (uploadError) {
-      throw new Error(`Failed to upload audio: ${uploadError.message}`)
+      console.error("Error uploading audio file:", uploadError);
+      throw new Error(`Failed to upload audio file: ${uploadError.message}`);
     }
-    
-    // Get the public URL for the uploaded audio
-    const { data: { publicUrl } } = supabase
+
+    console.log("Audio file uploaded successfully:", fileName);
+
+    // Get the public URL for the uploaded file
+    const { data: publicUrlData } = await supabase
       .storage
       .from('story_audio')
-      .getPublicUrl(filename)
-    
-    // Save audio info to database
-    const audioType = isPersonalized ? 'personalized' : 'standard'
-    const { error: dbError } = await supabase
+      .getPublicUrl(fileName);
+
+    const audioUrl = publicUrlData.publicUrl;
+
+    // Store the audio information in the database
+    const { data: audioData, error: audioInsertError } = await supabase
       .from('story_audio')
-      .upsert({
+      .insert({
         story_id: storyId,
-        audio_url: publicUrl,
-        audio_type: audioType,
+        audio_url: audioUrl,
+        audio_type: isPersonalized ? 'personalized' : 'standard',
         playback_count: 0,
-        created_at: new Date().toISOString(),
-      }, {
-        onConflict: 'story_id',
       })
-    
-    if (dbError) {
-      throw new Error(`Failed to save audio info: ${dbError.message}`)
+      .select()
+      .single();
+
+    if (audioInsertError) {
+      console.error("Error inserting audio record:", audioInsertError);
+      throw new Error(`Failed to store audio record: ${audioInsertError.message}`);
     }
-    
-    console.log(`Successfully generated audio for story: ${storyId}`)
-    
-    // Return success response
+
+    console.log("Audio record created:", audioData.id);
+
+    // Return the result
     return new Response(
       JSON.stringify({
-        audioUrl: publicUrl,
-        isPersonalized: isPersonalized,
+        success: true,
+        audioUrl,
+        isPersonalized,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
-    )
+    );
   } catch (error) {
-    console.error('Error in story-tts function:', error.message)
+    console.error("Error in story-tts function:", error.message);
     return new Response(
       JSON.stringify({
-        error: error.message
+        success: false,
+        error: error.message,
       }),
       {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
-    )
+    );
   }
-})
+});
