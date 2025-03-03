@@ -44,7 +44,7 @@ const Profile = () => {
       if (!isValidUUID) return null;
       
       try {
-        // First attempt to get the profile with voice ID columns
+        // First try to get the profile with all columns
         const { data, error } = await supabase
           .from("profiles")
           .select("id, first_name, last_name, created_at, synthflow_voice_id, elevenlabs_voice_id")
@@ -73,25 +73,35 @@ const Profile = () => {
             
             setHasVoice(false);
             
-            // Create a complete ProfileData object with null voice IDs
-            const fullProfile: ProfileData = {
-              ...profileWithoutVoice as any,
-              synthflow_voice_id: null,
-              elevenlabs_voice_id: null
-            };
-            
-            return fullProfile;
+            if (profileWithoutVoice) {
+              // Create a complete ProfileData object with null voice IDs
+              const fullProfile: ProfileData = {
+                id: profileWithoutVoice.id,
+                first_name: profileWithoutVoice.first_name,
+                last_name: profileWithoutVoice.last_name,
+                created_at: profileWithoutVoice.created_at,
+                synthflow_voice_id: null,
+                elevenlabs_voice_id: null
+              };
+              
+              return fullProfile;
+            }
+            return null;
           } else {
             console.error("Error fetching profile:", error);
             return null;
           }
         }
         
-        // If we successfully got the data, check if user has voice
-        const voiceExists = !!(data?.synthflow_voice_id || data?.elevenlabs_voice_id);
-        setHasVoice(voiceExists);
+        // If we successfully got the data with voice ID columns
+        if (data) {
+          const voiceExists = !!(data.synthflow_voice_id || data.elevenlabs_voice_id);
+          setHasVoice(voiceExists);
+          
+          return data as ProfileData;
+        }
         
-        return data as ProfileData;
+        return null;
       } catch (err) {
         console.error("Unexpected error fetching profile:", err);
         return null;
