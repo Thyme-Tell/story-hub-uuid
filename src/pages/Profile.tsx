@@ -1,3 +1,4 @@
+
 import { useParams, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,15 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-interface ProfileData {
-  id: string;
-  first_name: string;
-  last_name: string;
-  created_at: string;
-  synthflow_voice_id: string | null;
-  elevenlabs_voice_id: string | null;
-}
+import { ProfileData } from "@/types/profile";
 
 const Profile = () => {
   const { id } = useParams();
@@ -51,6 +44,7 @@ const Profile = () => {
       if (!isValidUUID) return null;
       
       try {
+        // First attempt to get the profile with voice ID columns
         const { data, error } = await supabase
           .from("profiles")
           .select("id, first_name, last_name, created_at, synthflow_voice_id, elevenlabs_voice_id")
@@ -58,12 +52,14 @@ const Profile = () => {
           .maybeSingle();
 
         if (error) {
+          // Check if the error is about missing columns
           if (error.message && (
               error.message.includes("column 'synthflow_voice_id' does not exist") ||
               error.message.includes("column 'elevenlabs_voice_id' does not exist")
           )) {
             console.warn("One or more voice ID columns don't exist yet");
             
+            // Get profile without the voice ID columns
             const { data: profileWithoutVoice, error: profileError } = await supabase
               .from("profiles")
               .select("id, first_name, last_name, created_at")
@@ -77,18 +73,23 @@ const Profile = () => {
             
             setHasVoice(false);
             
-            return {
-              ...profileWithoutVoice,
+            // Create a complete ProfileData object with null voice IDs
+            const fullProfile: ProfileData = {
+              ...profileWithoutVoice as any,
               synthflow_voice_id: null,
               elevenlabs_voice_id: null
-            } as ProfileData;
+            };
+            
+            return fullProfile;
           } else {
             console.error("Error fetching profile:", error);
             return null;
           }
         }
         
-        setHasVoice(!!(data?.synthflow_voice_id || data?.elevenlabs_voice_id));
+        // If we successfully got the data, check if user has voice
+        const voiceExists = !!(data?.synthflow_voice_id || data?.elevenlabs_voice_id);
+        setHasVoice(voiceExists);
         
         return data as ProfileData;
       } catch (err) {
