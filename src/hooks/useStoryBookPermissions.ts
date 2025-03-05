@@ -22,20 +22,21 @@ export function useStoryBookPermissions(storyBookId: string): StoryBookPermissio
         throw new Error("User not authenticated");
       }
 
-      // Use a direct query instead of the function call that was causing recursion
-      const { data: memberData, error: memberError } = await supabase
-        .from("storybook_members")
-        .select("role")
-        .eq("storybook_id", storyBookId)
-        .eq("profile_id", userData.user.id)
-        .single();
+      // Use the security definer function we created to avoid recursion
+      const { data: roleData, error: roleError } = await supabase.rpc(
+        'get_storybook_member_role',
+        { 
+          _storybook_id: storyBookId,
+          _profile_id: userData.user.id 
+        }
+      );
 
-      if (memberError && memberError.code !== 'PGRST116') {
-        console.error("Error fetching member role:", memberError);
-        throw memberError;
+      if (roleError) {
+        console.error("Error fetching member role:", roleError);
+        throw roleError;
       }
 
-      return memberData?.role as StoryBookRole | null;
+      return roleData as StoryBookRole | null;
     },
     retry: 1,
   });
