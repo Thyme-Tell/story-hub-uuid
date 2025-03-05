@@ -105,15 +105,16 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
         throw new Error("Could not verify your account. Please sign in again.");
       }
 
-      // Step 1: Create the storybook
-      const { data: storybook, error: storybookError } = await supabase
-        .from("storybooks")
-        .insert({ 
-          title: title.trim(),
-          description: description.trim() || null
-        })
-        .select()
-        .single();
+      // Instead of directly inserting, use a server-side function call to create 
+      // both the storybook and member record in a single transaction to avoid recursion
+      const { data: storybook, error: storybookError } = await supabase.rpc(
+        'create_storybook_with_owner',
+        {
+          _title: title.trim(),
+          _description: description.trim() || null,
+          _profile_id: userId
+        }
+      );
 
       if (storybookError) {
         console.error("Error creating storybook:", storybookError);
@@ -127,21 +128,6 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
 
       console.log("Storybook created successfully:", storybook);
       
-      // Step 2: Add the current user as owner using the verified userId
-      const { error: memberError } = await supabase
-        .from("storybook_members")
-        .insert({
-          storybook_id: storybook.id,
-          profile_id: userId, 
-          role: "owner",
-          added_by: userId
-        });
-
-      if (memberError) {
-        console.error("Error adding member to storybook:", memberError);
-        throw memberError;
-      }
-
       toast({
         title: "Success",
         description: "Storybook created successfully",
