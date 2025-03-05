@@ -66,11 +66,11 @@ const StoryBooks = () => {
         return;
       }
       
-      // Fetch storybooks that belong to the current user
+      // Fixed the TypeScript error by explicitly casting profileId to string
       const { data, error } = await supabase
         .from('storybooks')
         .select('*')
-        .eq('profile_id', profileId)  // Filter by profile_id to avoid RLS issues
+        .eq('profile_id', String(profileId))
         .order('created_at', { ascending: false });
 
       if (error) {
