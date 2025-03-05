@@ -66,11 +66,13 @@ const StoryBooks = () => {
         return;
       }
       
-      // Use type assertion to explicitly tell TypeScript that profileId is a string
+      // Fix for the TypeScript error - convert profileId to a primitive string value
+      const profileIdString = String(profileId);
+      
       const { data, error } = await supabase
         .from('storybooks')
         .select('*')
-        .eq('profile_id', profileId as string)
+        .eq('profile_id', profileIdString)
         .order('created_at', { ascending: false });
 
       if (error) {
