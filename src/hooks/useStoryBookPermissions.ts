@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
@@ -21,15 +22,22 @@ export function useStoryBookPermissions(storyBookId: string): StoryBookPermissio
         throw new Error("User not authenticated");
       }
 
-      const { data: memberData } = await supabase
+      // Use a direct query instead of the function call that was causing recursion
+      const { data: memberData, error: memberError } = await supabase
         .from("storybook_members")
         .select("role")
         .eq("storybook_id", storyBookId)
         .eq("profile_id", userData.user.id)
         .single();
 
+      if (memberError && memberError.code !== 'PGRST116') {
+        console.error("Error fetching member role:", memberError);
+        throw memberError;
+      }
+
       return memberData?.role as StoryBookRole | null;
     },
+    retry: 1,
   });
 
   return {

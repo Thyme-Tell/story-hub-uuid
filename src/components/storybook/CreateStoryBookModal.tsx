@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import FormField from "@/components/FormField";
@@ -59,6 +60,12 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     try {
       console.log("Creating storybook with profile ID:", profileId);
       
+      // Create the storybook in one transaction
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        throw new Error("User not authenticated");
+      }
+
       // Step 1: Create the storybook
       const { data: storybook, error: storybookError } = await supabase
         .from("storybooks")
@@ -81,14 +88,14 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
 
       console.log("Storybook created successfully:", storybook);
       
-      // Step 2: Now add the current user as owner to the storybook_members table
+      // Step 2: Add the current user as owner
       const { error: memberError } = await supabase
         .from("storybook_members")
         .insert({
           storybook_id: storybook.id,
-          profile_id: profileId,
+          profile_id: user.user.id,
           role: "owner",
-          added_by: profileId
+          added_by: user.user.id
         });
 
       if (memberError) {

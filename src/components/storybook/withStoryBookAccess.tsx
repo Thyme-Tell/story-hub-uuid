@@ -17,10 +17,10 @@ export function withStoryBookAccess<P extends WithStoryBookAccessProps>(
 ) {
   return function WithStoryBookAccessWrapper(props: P) {
     const { storyBookId, requireOwner, requireEdit } = props;
-    const { isOwner, canEdit, isLoading, error } = useStoryBookPermissions(storyBookId);
+    const { isOwner, canEdit, isLoading: permissionsLoading, error: permissionsError } = useStoryBookPermissions(storyBookId);
     const navigate = useNavigate();
     const { toast } = useToast();
-    const { isAuthenticated, checkAuth } = useAuth();
+    const { isAuthenticated, checkAuth, isLoading: authLoading } = useAuth();
 
     // Check authentication on component mount
     useEffect(() => {
@@ -39,7 +39,8 @@ export function withStoryBookAccess<P extends WithStoryBookAccessProps>(
       verifyAuth();
     }, [checkAuth, navigate, toast]);
 
-    if (!isAuthenticated) {
+    // Show loading state while checking auth or permissions
+    if (authLoading || !isAuthenticated) {
       return (
         <div className="flex items-center justify-center p-8">
           <Loader2 className="h-6 w-6 animate-spin" />
@@ -48,18 +49,20 @@ export function withStoryBookAccess<P extends WithStoryBookAccessProps>(
       );
     }
 
-    if (isLoading) {
+    if (permissionsLoading) {
       return (
         <div className="flex items-center justify-center p-8">
           <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="ml-2">Checking permissions...</span>
         </div>
       );
     }
 
-    if (error) {
+    if (permissionsError) {
+      console.error("Permission check error:", permissionsError);
       toast({
         title: "Error",
-        description: "Failed to verify permissions",
+        description: "Failed to verify permissions. Please try again.",
         variant: "destructive",
       });
       navigate("/storybooks");
