@@ -66,14 +66,15 @@ const StoryBooks = () => {
         return;
       }
       
-      // Fix for the TypeScript error - convert profileId to a primitive string value
-      const profileIdString = String(profileId);
-      
-      const { data, error } = await supabase
+      // Different approach to fix the TypeScript error
+      // Using a generic type in the query to avoid excessive type instantiation
+      const query = supabase
         .from('storybooks')
         .select('*')
-        .eq('profile_id', profileIdString)
+        .eq('profile_id', profileId)
         .order('created_at', { ascending: false });
+      
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching storybooks:', error);
