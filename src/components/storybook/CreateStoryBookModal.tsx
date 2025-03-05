@@ -25,18 +25,8 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
   useEffect(() => {
     if (open) {
       checkAuth();
-      
-      // If not authenticated, close the modal and redirect to sign-in
-      if (!isAuthenticated) {
-        setOpen(false);
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to create a storybook",
-        });
-        navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
-      }
     }
-  }, [open, isAuthenticated, checkAuth, navigate, toast]);
+  }, [open, checkAuth]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +55,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       console.log("Creating storybook with data:", {
         title: title.trim(),
         description: description.trim() || null,
+        profile_id: profileId
       });
       
       const { data: storybook, error: storybookError } = await supabase
@@ -72,6 +63,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
         .insert({ 
           title: title.trim(),
           description: description.trim() || null,
+          profile_id: profileId // Add profile_id to the storybook
         })
         .select()
         .single();
@@ -87,22 +79,6 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       }
 
       console.log("Storybook created successfully:", storybook);
-
-      const { error: memberError } = await supabase
-        .from("storybook_members")
-        .insert({
-          storybook_id: storybook.id,
-          profile_id: profileId,
-          role: "owner",
-          added_by: profileId,
-        });
-
-      if (memberError) {
-        console.error("Error creating storybook membership:", memberError);
-        throw memberError;
-      }
-
-      console.log("Storybook membership created successfully");
 
       toast({
         title: "Success",
@@ -128,14 +104,20 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
   // Use a different handler for the dialog trigger
   const handleOpenDialog = () => {
     if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to create a storybook",
+      checkAuth().then(isAuth => {
+        if (!isAuth) {
+          toast({
+            title: "Authentication Required",
+            description: "Please sign in to create a storybook",
+          });
+          navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
+          return;
+        }
+        setOpen(true);
       });
-      navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
-      return;
+    } else {
+      setOpen(true);
     }
-    setOpen(true);
   };
 
   return (

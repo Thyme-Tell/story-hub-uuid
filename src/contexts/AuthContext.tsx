@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import Cookies from 'js-cookie';
@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profileId, setProfileId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const storedProfileId = Cookies.get('profile_id');
       const isAuthorized = Cookies.get('profile_authorized');
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfileId(null);
       return false;
     }
-  };
+  }, []);
 
   const logout = async () => {
     clearAuthCookies();
@@ -66,6 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Cookies.remove('profile_id');
     Cookies.remove('profile_authorized');
     Cookies.remove('phone_number');
+    // Trigger auth state change event
+    window.localStorage.setItem('auth_state_changed', Date.now().toString());
   };
 
   useEffect(() => {
@@ -73,12 +75,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
     
     // Watch for cookie changes
-    const handleCookieChange = () => {
+    const handleAuthStateChange = () => {
       checkAuth();
     };
 
-    // Set up cookie change detection
-    window.addEventListener('storage', handleCookieChange);
+    // Set up auth state change detection
+    window.addEventListener('storage', handleAuthStateChange);
     
     // Set up an interval to periodically check auth status (every 5 minutes)
     const authCheckInterval = setInterval(() => {
@@ -86,10 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 5 * 60 * 1000);
 
     return () => {
-      window.removeEventListener('storage', handleCookieChange);
+      window.removeEventListener('storage', handleAuthStateChange);
       clearInterval(authCheckInterval);
     };
-  }, []);
+  }, [checkAuth]);
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, profileId, checkAuth, logout }}>

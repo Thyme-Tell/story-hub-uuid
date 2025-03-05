@@ -21,10 +21,13 @@ const StoryBooks = () => {
   const [storybooks, setStorybooks] = useState<StoryBook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
-  const { isAuthenticated, profileId } = useAuth();
+  const { isAuthenticated, profileId, checkAuth } = useAuth();
 
   useEffect(() => {
     document.title = "Narra Story | Storybooks";
+    
+    // Check authentication on initial load
+    checkAuth();
     
     // Fetch profile info if authenticated
     const fetchProfileInfo = async () => {
@@ -50,18 +53,23 @@ const StoryBooks = () => {
 
     fetchProfileInfo();
     fetchStorybooks();
-  }, [isAuthenticated, profileId]);
+  }, [isAuthenticated, profileId, checkAuth]);
 
   const fetchStorybooks = async () => {
     try {
       setIsLoading(true);
-      // Fetch public storybooks that are available to everyone
+      
+      // Fetch storybooks
       const { data, error } = await supabase
         .from('storybooks')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching storybooks:', error);
+        throw error;
+      }
+      
       setStorybooks(data || []);
     } catch (error) {
       console.error('Error fetching storybooks:', error);
