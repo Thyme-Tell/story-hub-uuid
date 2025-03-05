@@ -5,7 +5,6 @@ interface Story {
   title: string | null;
   content: string;
   created_at: string;
-  share_token: string | null;
 }
 
 interface StoriesListProps {

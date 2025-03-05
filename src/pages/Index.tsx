@@ -25,7 +25,7 @@ const Index = () => {
           </p>
           <p className="text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: '600ms' }}>
             Already have an account?{" "}
-            <Link to="/sign-in" className="hover:underline">
+            <Link to="/signin" className="hover:underline">
               Sign in
             </Link>
           </p>

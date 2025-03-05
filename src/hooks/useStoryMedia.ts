@@ -1,14 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export const useStoryMedia = (storyId: string | undefined) => {
+export const useStoryMedia = (storyId: string) => {
   return useQuery({
     queryKey: ["story-media", storyId],
     queryFn: async () => {
-      if (!storyId) {
-        return [];
-      }
-
       const { data, error } = await supabase
         .from("story_media")
         .select("*")
@@ -18,6 +14,5 @@ export const useStoryMedia = (storyId: string | undefined) => {
       if (error) throw error;
       return data;
     },
-    enabled: !!storyId, // Only run the query if storyId exists
   });
 };

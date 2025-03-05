@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 interface MediaCaptionProps {
   mediaId: string;
@@ -19,22 +19,19 @@ const MediaCaption = ({ mediaId, caption, onUpdate }: MediaCaptionProps) => {
 
   if (isEditing) {
     return (
-      <div className="space-y-2">
-        <Textarea
+      <div className="flex gap-2">
+        <Input
           value={captionText}
           onChange={(e) => setCaptionText(e.target.value)}
           placeholder="Add a caption..."
-          className="w-full min-h-[80px]"
-          rows={3}
+          className="flex-1"
         />
-        <div className="flex gap-2">
-          <Button size="sm" onClick={handleSubmit}>
-            Save
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
-            Cancel
-          </Button>
-        </div>
+        <Button size="sm" onClick={handleSubmit}>
+          Save
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+          Cancel
+        </Button>
       </div>
     );
   }

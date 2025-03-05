@@ -20,8 +20,8 @@ const FormField = ({
   required = false,
   placeholder,
 }: FormFieldProps) => (
-  <div className="space-y-2 text-left">
-    <Label htmlFor={name} className="block text-left">
+  <div className="space-y-2">
+    <Label htmlFor={name}>
       {label} {required && "*"}
     </Label>
     <Input

@@ -1,10 +1,10 @@
-import { useParams, Navigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate } from "react-router-dom";
 import ProfileHeader from "@/components/ProfileHeader";
 import StoriesList from "@/components/StoriesList";
-import BookProgress from "@/components/BookProgress";
+import Storybooks from "@/components/Storybooks";
 import { Menu } from "lucide-react";
 import { useEffect } from "react";
 import {
@@ -14,28 +14,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
 
 const Profile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-
-  const isValidUUID = id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
-  if (!isValidUUID && !window.location.pathname.includes('/sign-in')) {
-    return <Navigate to="/sign-in" replace />;
-  }
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ["profile", id],
     queryFn: async () => {
-      if (!isValidUUID) return null;
-      
       const { data, error } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, created_at")
@@ -49,28 +35,32 @@ const Profile = () => {
       
       return data;
     },
-    enabled: isValidUUID,
   });
 
   const { data: stories, isLoading: isLoadingStories, refetch: refetchStories } = useQuery({
     queryKey: ["stories", id],
     queryFn: async () => {
-      if (!isValidUUID) return [];
+      if (!id) return [];
       
-      const { data: storiesData, error: storiesError } = await supabase
+      const { data, error } = await supabase
         .from("stories")
-        .select("id, title, content, created_at, share_token")
+        .select(`
+          id,
+          title,
+          content,
+          created_at
+        `)
         .eq("profile_id", id)
         .order("created_at", { ascending: false });
 
-      if (storiesError) {
-        console.error("Error fetching stories:", storiesError);
+      if (error) {
+        console.error("Error fetching stories:", error);
         return [];
       }
-
-      return storiesData;
+      
+      return data;
     },
-    enabled: isValidUUID,
+    enabled: !!id,
   });
 
   useEffect(() => {
@@ -82,11 +72,6 @@ const Profile = () => {
   }, [profile]);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Error signing out:", error);
-      return;
-    }
     navigate('/');
   };
 
@@ -98,7 +83,7 @@ const Profile = () => {
     );
   }
 
-  if (!profile && isValidUUID) {
+  if (!profile) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -130,30 +115,37 @@ const Profile = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Menu className="h-[24px] w-[24px] scale-[1.6]" />
+              <Menu className="h-12 w-12" />
               <span className="sr-only">Open menu</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem asChild>
+              <Link to="/storybooks">
+                View All Storybooks
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleLogout} className="text-[#A33D29]">
               Not {profile.first_name}? Log Out
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/">
+                Sign Up for Narra
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
       <div className="p-4">
         <div className="max-w-2xl mx-auto space-y-6">
-          <BookProgress profileId={id} />
           <ProfileHeader 
             firstName={profile.first_name} 
-            lastName={profile.last_name}
-            profileId={profile.id}
-            onUpdate={refetchStories}
+            lastName={profile.last_name} 
           />
           
           <div>
-            <p className="text-muted-foreground mb-[15px] text-left">
-              or call Narra at <a href="tel:+15072003303" className="text-[#A33D29] hover:underline">+1 (507) 200-3303</a> for a friendly interview.
+            <p className="text-muted-foreground mb-[15px]">
+              Call Narra at <a href="tel:+15072003303" className="text-[#A33D29] hover:underline">+1 (507) 200-3303</a> to create a new story.
             </p>
             
             <StoriesList 
@@ -162,6 +154,8 @@ const Profile = () => {
               onUpdate={refetchStories}
             />
           </div>
+
+          <Storybooks profileId={profile.id} />
         </div>
       </div>
     </div>
