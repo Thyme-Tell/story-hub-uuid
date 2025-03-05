@@ -422,6 +422,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_storybook_with_owner: {
+        Args: {
+          _title: string
+          _description: string
+          _profile_id: string
+        }
+        Returns: Json
+      }
       get_storybook_member_role: {
         Args: {
           _storybook_id: string

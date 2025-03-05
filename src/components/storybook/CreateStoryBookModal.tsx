@@ -105,10 +105,11 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
         throw new Error("Could not verify your account. Please sign in again.");
       }
 
-      // Instead of directly inserting, use a server-side function call to create 
-      // both the storybook and member record in a single transaction to avoid recursion
+      // Use our new database function to create the storybook and add owner in one transaction
+      // Explicitly cast the function name as const to satisfy TypeScript
+      const functionName = 'create_storybook_with_owner' as const;
       const { data: storybook, error: storybookError } = await supabase.rpc(
-        'create_storybook_with_owner',
+        functionName,
         {
           _title: title.trim(),
           _description: description.trim() || null,
