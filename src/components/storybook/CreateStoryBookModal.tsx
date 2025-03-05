@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import FormField from "@/components/FormField";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface CreateStoryBookModalProps {
   onSuccess: () => void;
@@ -18,23 +19,36 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { profileId } = useAuth();
+  const { profileId, isAuthenticated, checkAuth } = useAuth();
+  const navigate = useNavigate();
+
+  // Run an authentication check when modal opens
+  useEffect(() => {
+    if (open) {
+      checkAuth();
+    }
+  }, [open, checkAuth]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check authentication first
+    if (!isAuthenticated || !profileId) {
+      console.log("User not authenticated, redirecting to sign in");
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a storybook",
+        variant: "destructive",
+      });
+      setOpen(false);
+      navigate('/sign-in', { state: { redirectTo: '/storybooks' } });
+      return;
+    }
+
     if (!title.trim()) {
       toast({
         title: "Error",
         description: "Title is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!profileId) {
-      toast({
-        title: "Error",
-        description: "Unable to determine your account. Please refresh the page and try again.",
         variant: "destructive",
       });
       return;
@@ -46,6 +60,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       console.log("Creating storybook with data:", {
         title: title.trim(),
         description: description.trim() || null,
+        profileId
       });
       
       // Step 1: Create the storybook
@@ -106,8 +121,30 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     }
   };
 
+  const handleOpenChange = (newOpenState: boolean) => {
+    if (newOpenState && !isAuthenticated) {
+      // If trying to open and not authenticated, check auth first
+      const checkAndOpen = async () => {
+        const isAuth = await checkAuth();
+        if (!isAuth) {
+          toast({
+            title: "Authentication Required",
+            description: "Please sign in to create a storybook",
+            variant: "destructive",
+          });
+          navigate('/sign-in', { state: { redirectTo: '/storybooks' } });
+          return;
+        }
+        setOpen(true);
+      };
+      checkAndOpen();
+    } else {
+      setOpen(newOpenState);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <div>{children}</div>
       </DialogTrigger>
@@ -133,10 +170,15 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
           <Button
             type="submit"
             className="w-full bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
-            disabled={isLoading}
+            disabled={isLoading || !isAuthenticated}
           >
             {isLoading ? "Creating..." : "Create Storybook"}
           </Button>
+          {!isAuthenticated && (
+            <p className="text-sm text-red-500 text-center">
+              Please sign in to create a storybook
+            </p>
+          )}
         </form>
       </DialogContent>
     </Dialog>

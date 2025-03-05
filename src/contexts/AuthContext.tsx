@@ -20,6 +20,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = useCallback(async () => {
     try {
+      console.log("Checking authentication status...");
+      
       // First check if there's an active session
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
@@ -27,6 +29,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Check both session and cookies
       const storedProfileId = Cookies.get('profile_id');
       const isAuthorized = Cookies.get('profile_authorized');
+
+      console.log("Session check:", !!session, "Cookie check:", !!storedProfileId && !!isAuthorized);
 
       if (session) {
         // If we have a valid session, ensure cookies are set
@@ -42,11 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             Cookies.set('profile_authorized', 'true', { expires: 7 });
             setIsAuthenticated(true);
             setProfileId(profile.id);
+            console.log("Auth check result: Authenticated with session. Profile ID:", profile.id);
             return true;
           }
         } else {
           setIsAuthenticated(true);
           setProfileId(storedProfileId);
+          console.log("Auth check result: Authenticated with session and cookies. Profile ID:", storedProfileId);
           return true;
         }
       } else if (storedProfileId && isAuthorized) {
@@ -62,15 +68,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           clearAuthCookies();
           setIsAuthenticated(false);
           setProfileId(null);
+          console.log("Auth check result: Failed cookie validation");
           return false;
         }
 
         setIsAuthenticated(true);
         setProfileId(profile.id);
+        console.log("Auth check result: Authenticated with cookies. Profile ID:", profile.id);
         return true;
       }
 
       // If no valid session or cookies, user is not authenticated
+      console.log("Auth check result: Not authenticated");
       setIsAuthenticated(false);
       setProfileId(null);
       return false;
@@ -79,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearAuthCookies();
       setIsAuthenticated(false);
       setProfileId(null);
+      console.log("Auth check result: Error occurred");
       return false;
     }
   }, []);

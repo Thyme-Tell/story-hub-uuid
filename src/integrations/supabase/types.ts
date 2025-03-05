@@ -414,7 +414,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_storybook_member_role: {
+        Args: {
+          _storybook_id: string
+          _profile_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       storybook_role: "owner" | "contributor" | "viewer"
