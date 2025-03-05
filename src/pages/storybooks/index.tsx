@@ -26,12 +26,12 @@ const StoryBooks = () => {
   useEffect(() => {
     document.title = "Narra Story | Storybooks";
     
-    // Check authentication on initial load
-    checkAuth();
-    
-    // Fetch profile info if authenticated
-    const fetchProfileInfo = async () => {
-      if (isAuthenticated && profileId) {
+    // Check authentication on initial load with immediate feedback
+    const initialAuthCheck = async () => {
+      const isAuth = await checkAuth();
+      console.log('Authentication status on load:', isAuth, 'Profile ID:', profileId);
+      
+      if (isAuth && profileId) {
         try {
           const { data: profile, error } = await supabase
             .from('profiles')
@@ -51,9 +51,9 @@ const StoryBooks = () => {
       }
     };
 
-    fetchProfileInfo();
+    initialAuthCheck();
     fetchStorybooks();
-  }, [isAuthenticated, profileId, checkAuth]);
+  }, [profileId, checkAuth]);
 
   const fetchStorybooks = async () => {
     try {

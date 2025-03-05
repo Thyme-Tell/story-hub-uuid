@@ -24,6 +24,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
 
   useEffect(() => {
     if (open) {
+      // Verify authentication when modal opens
       checkAuth();
     }
   }, [open, checkAuth]);
@@ -39,7 +40,9 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       return;
     }
 
-    if (!isAuthenticated || !profileId) {
+    // Check authentication and profileId
+    const isAuth = await checkAuth();
+    if (!isAuth || !profileId) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to create a storybook",
@@ -63,7 +66,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
         .insert({ 
           title: title.trim(),
           description: description.trim() || null,
-          profile_id: profileId // Add profile_id to the storybook
+          profile_id: profileId
         })
         .select()
         .single();
@@ -101,30 +104,11 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     }
   };
 
-  // Use a different handler for the dialog trigger
-  const handleOpenDialog = () => {
-    if (!isAuthenticated) {
-      checkAuth().then(isAuth => {
-        if (!isAuth) {
-          toast({
-            title: "Authentication Required",
-            description: "Please sign in to create a storybook",
-          });
-          navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
-          return;
-        }
-        setOpen(true);
-      });
-    } else {
-      setOpen(true);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <div onClick={handleOpenDialog}>
-        {children}
-      </div>
+      <DialogTrigger asChild>
+        <div>{children}</div>
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Storybook</DialogTitle>
