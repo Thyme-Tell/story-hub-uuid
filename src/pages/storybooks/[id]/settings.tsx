@@ -19,35 +19,39 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 function StoryBookSettings() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { profileId } = useAuth();
 
   const { data: storybook, isLoading } = useQuery({
-    queryKey: ["storybook", id],
+    queryKey: ["storybook", id, profileId],
     queryFn: async () => {
       if (!id) throw new Error("No storybook ID provided");
 
-      const { data, error } = await supabase
+      const { data: storybookData, error: storybookError } = await supabase
         .from("storybooks")
-        .select(`
-          *,
-          storybook_members!inner (
-            profile_id,
-            role,
-            profiles!storybook_members_profile_id_fkey (
-              first_name,
-              last_name
-            )
-          )
-        `)
+        .select("*")
         .eq("id", id)
         .maybeSingle();
 
-      if (error) throw error;
-      return data;
+      if (storybookError) throw storybookError;
+      if (!storybookData) throw new Error("Storybook not found");
+      
+      const { data: membersData, error: membersError } = await supabase
+        .rpc('get_storybook_members', { _storybook_id: id });
+        
+      if (membersError) {
+        console.error("Error fetching members:", membersError);
+      }
+
+      return {
+        ...storybookData,
+        storybook_members: membersData || []
+      };
     },
   });
 

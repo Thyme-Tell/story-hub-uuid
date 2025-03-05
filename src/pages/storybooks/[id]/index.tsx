@@ -1,15 +1,11 @@
-
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { EditStoryBookModal } from "@/components/storybook/EditStoryBookModal";
 import { StoryFeed } from "@/components/storybook/StoryFeed";
-import { MemberManagement } from "@/components/storybook/MemberManagement";
 import { Button } from "@/components/ui/button";
 import { Settings, ArrowLeft, Book, Plus } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { AvatarFallback } from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -19,45 +15,47 @@ import {
 } from "@/components/ui/select";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function StoryBook() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [sortOrder, setSortOrder] = useState("newest");
   const { toast } = useToast();
+  const { profileId } = useAuth();
 
   const { data: storybook, isLoading, error } = useQuery({
-    queryKey: ["storybook", id],
+    queryKey: ["storybook", id, profileId],
     queryFn: async () => {
       try {
         if (!id) throw new Error("No storybook ID provided");
         
-        const { data, error } = await supabase
+        const { data: storybookData, error: storybookError } = await supabase
           .from("storybooks")
-          .select(`
-            *,
-            storybook_members (
-              profile_id,
-              role,
-              profiles!storybook_members_profile_id_fkey (
-                first_name,
-                last_name
-              )
-            )
-          `)
+          .select("*")
           .eq("id", id)
           .maybeSingle();
 
-        if (error) {
-          console.error("Error fetching storybook:", error);
-          throw error;
+        if (storybookError) {
+          console.error("Error fetching storybook:", storybookError);
+          throw storybookError;
         }
         
-        if (!data) {
+        if (!storybookData) {
           throw new Error("Storybook not found");
         }
         
-        return data;
+        const { data: membersData, error: membersError } = await supabase
+          .rpc('get_storybook_members', { _storybook_id: id });
+          
+        if (membersError) {
+          console.error("Error fetching storybook members:", membersError);
+        }
+        
+        return {
+          ...storybookData,
+          storybook_members: membersData || []
+        };
       } catch (err) {
         console.error("Failed to fetch storybook:", err);
         toast({
@@ -95,18 +93,15 @@ export default function StoryBook() {
     );
   }
 
-  // Extract contributors (people who have added stories)
   const contributors = storybook.storybook_members?.map(member => ({
     id: member.profile_id,
-    name: `${member.profiles.first_name} ${member.profiles.last_name}`,
-    initials: `${member.profiles.first_name?.[0] || ''}${member.profiles.last_name?.[0] || ''}`,
+    name: `${member.first_name} ${member.last_name}`,
+    initials: `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`,
   })) || [];
 
   return (
     <div className="relative min-h-screen">
-      {/* Hero section with background image */}
       <div className="relative h-[40vh] bg-gray-900">
-        {/* Background image */}
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{
@@ -115,7 +110,6 @@ export default function StoryBook() {
           }}
         />
         
-        {/* Top navigation */}
         <div className="absolute top-4 left-4 right-4 flex justify-between z-10">
           <Button 
             variant="ghost" 
@@ -148,7 +142,6 @@ export default function StoryBook() {
           </div>
         </div>
         
-        {/* Storybook title and description */}
         <div className="absolute bottom-8 left-6 right-6 text-white">
           <h1 className="text-5xl font-bold mb-2">{storybook.title}</h1>
           {storybook.description && (
@@ -156,7 +149,6 @@ export default function StoryBook() {
           )}
           <button className="text-white/80 mt-2">See more..</button>
           
-          {/* Contributors */}
           <div className="flex items-center mt-4">
             <div className="flex -space-x-2">
               {contributors.slice(0, 3).map((contributor) => (
@@ -174,9 +166,7 @@ export default function StoryBook() {
         </div>
       </div>
       
-      {/* Content area */}
       <div className="bg-gray-100 min-h-[60vh] p-4">
-        {/* Filter/sort controls */}
         <div className="mb-6">
           <Select 
             value={sortOrder} 
@@ -193,14 +183,12 @@ export default function StoryBook() {
           </Select>
         </div>
         
-        {/* Stories feed */}
         <StoryFeed
           storyBookId={storybook.id}
           sortOrder={sortOrder}
         />
       </div>
       
-      {/* Floating action button for adding new stories */}
       <div className="fixed bottom-8 right-8">
         <Button 
           className="h-16 w-16 rounded-full bg-[#A33D29] hover:bg-[#A33D29]/90 shadow-lg"

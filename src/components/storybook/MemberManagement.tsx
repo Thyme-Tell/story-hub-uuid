@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,11 +14,9 @@ type StoryBookRole = Database["public"]["Enums"]["storybook_role"];
 interface Member {
   profile_id: string;
   role: StoryBookRole;
-  profiles: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
+  first_name: string;
+  last_name: string;
+  email: string;
 }
 
 interface MemberManagementProps {
@@ -31,34 +30,37 @@ export function MemberManagement({ storyBookId }: MemberManagementProps) {
   const { data: members, isLoading, refetch } = useQuery({
     queryKey: ["storybook-members", storyBookId],
     queryFn: async () => {
-      const { data: currentUser } = await supabase.auth.getUser();
-      
-      const { data, error } = await supabase
-        .from("storybook_members")
-        .select(`
-          profile_id,
-          role,
-          profiles!storybook_members_profile_id_fkey (
-            first_name,
-            last_name,
-            email
-          )
-        `)
-        .eq("storybook_id", storyBookId);
+      try {
+        // Use the security definer function to get members
+        const { data, error } = await supabase.rpc(
+          'get_storybook_members',
+          { _storybook_id: storyBookId }
+        );
 
-      if (error) throw error;
-      return data as Member[];
+        if (error) {
+          console.error("Error fetching storybook members:", error);
+          throw error;
+        }
+
+        return data as Member[];
+      } catch (err) {
+        console.error("Failed to fetch members:", err);
+        throw err;
+      }
     },
   });
 
   const handleRoleChange = async (memberId: string, newRole: StoryBookRole) => {
     setIsUpdating(true);
     try {
-      const { error } = await supabase
-        .from("storybook_members")
-        .update({ role: newRole })
-        .eq("storybook_id", storyBookId)
-        .eq("profile_id", memberId);
+      const { error } = await supabase.rpc(
+        'update_storybook_member_role',
+        { 
+          _storybook_id: storyBookId,
+          _profile_id: memberId,
+          _new_role: newRole 
+        }
+      );
 
       if (error) throw error;
 
@@ -80,11 +82,13 @@ export function MemberManagement({ storyBookId }: MemberManagementProps) {
 
   const handleRemoveMember = async (memberId: string) => {
     try {
-      const { error } = await supabase
-        .from("storybook_members")
-        .delete()
-        .eq("storybook_id", storyBookId)
-        .eq("profile_id", memberId);
+      const { error } = await supabase.rpc(
+        'remove_storybook_member',
+        { 
+          _storybook_id: storyBookId,
+          _profile_id: memberId 
+        }
+      );
 
       if (error) throw error;
 
@@ -121,9 +125,9 @@ export function MemberManagement({ storyBookId }: MemberManagementProps) {
           >
             <div>
               <div className="font-medium">
-                {member.profiles.first_name} {member.profiles.last_name}
+                {member.first_name} {member.last_name}
               </div>
-              <div className="text-sm text-gray-500">{member.profiles.email}</div>
+              <div className="text-sm text-gray-500">{member.email}</div>
             </div>
             <div className="flex items-center gap-4">
               <RoleSelector
