@@ -149,23 +149,13 @@ const StoryBooks = () => {
         </Link>
         <div className="flex justify-between items-center mb-8 mt-4">
           <h1 className="text-3xl font-bold">Storybooks</h1>
-          {isAuthenticated ? (
-            <CreateStoryBookModal onSuccess={fetchStorybooks}>
-              <Button
-                className="bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
-              >
-                Create New Storybook
-              </Button>
-            </CreateStoryBookModal>
-          ) : (
-            <Link to="/sign-in">
-              <Button
-                className="bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
-              >
-                Sign In to Create
-              </Button>
-            </Link>
-          )}
+          <CreateStoryBookModal onSuccess={fetchStorybooks}>
+            <Button
+              className="bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
+            >
+              Create New Storybook
+            </Button>
+          </CreateStoryBookModal>
         </div>
 
         <StoryBookList storybooks={storybooks} isLoading={isLoading} />
