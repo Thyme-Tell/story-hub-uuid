@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import FormField from "@/components/FormField";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,10 +22,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted", { title, description, profileId });
-    
     if (!title.trim()) {
-      console.log("Form validation failed: Title is required");
       toast({
         title: "Error",
         description: "Title is required",
@@ -35,7 +32,6 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     }
 
     if (!profileId) {
-      console.log("Form validation failed: No profile ID");
       toast({
         title: "Error",
         description: "Unable to determine your account. Please refresh the page and try again.",
@@ -89,8 +85,6 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
         throw memberError;
       }
 
-      console.log("Storybook member added successfully");
-      
       toast({
         title: "Success",
         description: "Storybook created successfully",
@@ -99,7 +93,6 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       setTitle("");
       setDescription("");
       setOpen(false);
-      console.log("Calling onSuccess callback");
       onSuccess();
     } catch (error) {
       console.error("Error in storybook creation:", error);
@@ -113,24 +106,14 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    console.log("Dialog open state changing to:", newOpen);
-    setOpen(newOpen);
-  };
-
-  console.log("Rendering CreateStoryBookModal, open state:", open);
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <div onClick={() => console.log("Dialog trigger clicked")}>{children}</div>
+        <div>{children}</div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Storybook</DialogTitle>
-          <DialogDescription>
-            Create a new storybook to organize your stories.
-          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <FormField
@@ -151,7 +134,6 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
             type="submit"
             className="w-full bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
             disabled={isLoading}
-            onClick={() => console.log("Submit button clicked")}
           >
             {isLoading ? "Creating..." : "Create Storybook"}
           </Button>
