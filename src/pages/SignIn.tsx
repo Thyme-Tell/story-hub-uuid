@@ -23,10 +23,6 @@ const SignIn = () => {
     password: "",
   });
 
-  // Get the redirect path from URL params or location state
-  const redirectTo = searchParams.get('redirectTo') || 
-                    (location.state as { redirectTo?: string })?.redirectTo;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -87,13 +83,12 @@ const SignIn = () => {
       Cookies.set('phone_number', normalizedPhoneNumber, { expires: 365 });
       Cookies.set('profile_id', profile.id, { expires: 365 });
 
-      console.log("Authentication successful. Redirecting to:", redirectTo || `/profile/${profile.id}`);
+      // Get the redirect path from URL params or location state
+      const redirectTo = searchParams.get('redirectTo') || 
+                        (location.state as { redirectTo?: string })?.redirectTo || 
+                        `/profile/${profile.id}`;
       
-      // Trigger a custom event to notify other components about the login
-      window.dispatchEvent(new Event('storage'));
-      
-      // Navigate to the redirect path or profile page
-      navigate(redirectTo || `/profile/${profile.id}`, { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -126,11 +121,6 @@ const SignIn = () => {
           <p className="text-muted-foreground mt-2">
             Please enter your credentials below
           </p>
-          {redirectTo && (
-            <p className="text-sm text-muted-foreground mt-2">
-              You'll be redirected after signing in
-            </p>
-          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -58,23 +58,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     checkAuth();
     
-    // Recheck auth when cookies change or when storage event is triggered
+    // Recheck auth when cookies change
     const handleCookieChange = () => {
-      console.log("Auth state change detected, rechecking auth...");
       checkAuth();
     };
 
     window.addEventListener('storage', handleCookieChange);
-    
-    // Define a more specific interval to check auth state periodically
-    const authCheckInterval = setInterval(() => {
-      checkAuth();
-    }, 5000);
-    
-    return () => {
-      window.removeEventListener('storage', handleCookieChange);
-      clearInterval(authCheckInterval);
-    };
+    return () => window.removeEventListener('storage', handleCookieChange);
   }, []);
 
   return (
