@@ -1,11 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import FormField from "@/components/FormField";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CreateStoryBookModalProps {
@@ -19,15 +18,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const { isAuthenticated, profileId, checkAuth } = useAuth();
-
-  useEffect(() => {
-    if (open) {
-      // Verify authentication when modal opens
-      checkAuth();
-    }
-  }, [open, checkAuth]);
+  const { profileId } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,15 +31,12 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       return;
     }
 
-    // Check authentication and profileId
-    const isAuth = await checkAuth();
-    if (!isAuth || !profileId) {
+    if (!profileId) {
       toast({
-        title: "Authentication Required",
-        description: "Please sign in to create a storybook",
+        title: "Error",
+        description: "Unable to determine your account. Please refresh the page and try again.",
+        variant: "destructive",
       });
-      setOpen(false);
-      navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
       return;
     }
 
