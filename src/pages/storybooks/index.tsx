@@ -66,11 +66,12 @@ const StoryBooks = () => {
         return;
       }
       
-      // Add explicit type annotation to avoid excessive type instantiation
+      // Fix: Explicitly cast profileId to string to avoid excessive type instantiation
       const { data, error } = await supabase
         .from('storybooks')
         .select('*')
-        .eq('profile_id', profileId as string)  // Use type assertion here
+        // Use explicit type casting to string
+        .eq('profile_id', String(profileId))
         .order('created_at', { ascending: false });
 
       if (error) {
