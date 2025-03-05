@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { StoryBookList } from "@/components/storybook/StoryBookList";
 import { CreateStoryBookModal } from "@/components/storybook/CreateStoryBookModal";
 import { supabase } from "@/integrations/supabase/client";
-import { Menu, Library } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
@@ -63,43 +63,66 @@ const StoryBooks = () => {
     try {
       setIsLoading(true);
       
-      // Fetch all storybooks the user is a member of
-      if (profileId) {
-        const { data: memberStorybooks, error: memberError } = await supabase
-          .from('storybook_members')
-          .select('storybook_id')
-          .eq('profile_id', profileId);
-          
-        if (memberError) {
-          console.error('Error fetching storybook memberships:', memberError);
-          throw memberError;
-        }
-        
-        // If user is a member of any storybooks, get those storybooks
-        if (memberStorybooks && memberStorybooks.length > 0) {
-          const storyBookIds = memberStorybooks.map(item => item.storybook_id);
-          
-          const { data, error } = await supabase
-            .from('storybooks')
-            .select('*')
-            .in('id', storyBookIds)
-            .order('created_at', { ascending: false });
-            
-          if (error) {
-            console.error('Error fetching storybooks:', error);
-            throw error;
-          }
-          
-          setStorybooks(data || []);
-        } else {
-          // User isn't a member of any storybooks
-          setStorybooks([]);
-        }
-      } else {
+      // Only attempt to fetch storybooks if user is authenticated
+      if (!profileId) {
         setStorybooks([]);
+        setIsLoading(false);
+        return;
       }
+      
+      console.log('Fetching storybooks for profile ID:', profileId);
+      
+      // First, get all storybook IDs where the user is a member
+      const { data: memberData, error: memberError } = await supabase
+        .from('storybook_members')
+        .select('storybook_id')
+        .eq('profile_id', profileId);
+        
+      if (memberError) {
+        console.error('Error fetching storybook memberships:', memberError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to retrieve your storybooks",
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // If user is not a member of any storybooks
+      if (!memberData || memberData.length === 0) {
+        console.log('User is not a member of any storybooks');
+        setStorybooks([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Extract storybook IDs from membership data
+      const storyBookIds = memberData.map(item => item.storybook_id);
+      console.log('Found storybook IDs:', storyBookIds);
+      
+      // Fetch the actual storybooks using the IDs
+      const { data: storybooksData, error: storybooksError } = await supabase
+        .from('storybooks')
+        .select('*')
+        .in('id', storyBookIds)
+        .order('created_at', { ascending: false });
+        
+      if (storybooksError) {
+        console.error('Error fetching storybooks:', storybooksError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load storybooks",
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('Successfully fetched storybooks:', storybooksData);
+      setStorybooks(storybooksData || []);
     } catch (error) {
-      console.error('Error fetching storybooks:', error);
+      console.error('Exception in fetchStorybooks:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -184,6 +207,14 @@ const StoryBooks = () => {
             </Button>
           </CreateStoryBookModal>
         </div>
+
+        {!isAuthenticated && !isLoading && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <p className="text-yellow-700">
+              Please <Link to="/sign-in" className="text-[#A33D29] font-medium hover:underline">sign in</Link> to view and create storybooks.
+            </p>
+          </div>
+        )}
 
         <StoryBookList storybooks={storybooks} isLoading={isLoading} />
       </div>
