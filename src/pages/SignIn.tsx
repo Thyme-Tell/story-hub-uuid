@@ -7,6 +7,7 @@ import FormField from "@/components/FormField";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePhoneNumber } from "@/utils/phoneUtils";
 import Cookies from "js-cookie";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const SignIn = () => {
   useEffect(() => {
@@ -36,7 +37,10 @@ const SignIn = () => {
         .eq("phone_number", normalizedPhoneNumber)
         .maybeSingle();
 
-      if (searchError) throw searchError;
+      if (searchError) {
+        console.error("Search error:", searchError);
+        throw searchError;
+      }
 
       if (!profile) {
         toast({
@@ -79,16 +83,23 @@ const SignIn = () => {
       }
 
       // Set cookies to expire in 365 days
-      Cookies.set('profile_authorized', 'true', { expires: 365 });
-      Cookies.set('phone_number', normalizedPhoneNumber, { expires: 365 });
-      Cookies.set('profile_id', profile.id, { expires: 365 });
+      Cookies.set('profile_authorized', 'true', { expires: 365, path: '/' });
+      Cookies.set('phone_number', normalizedPhoneNumber, { expires: 365, path: '/' });
+      Cookies.set('profile_id', profile.id, { expires: 365, path: '/' });
 
-      // Get the redirect path from URL params or location state
-      const redirectTo = searchParams.get('redirectTo') || 
-                        (location.state as { redirectTo?: string })?.redirectTo || 
-                        `/profile/${profile.id}`;
-      
-      navigate(redirectTo, { replace: true });
+      // Add a delay to ensure cookies are set before redirecting
+      setTimeout(() => {
+        // Trigger a storage event to notify other tabs
+        window.localStorage.setItem('auth_state_changed', Date.now().toString());
+        
+        // Get the redirect path from URL params or location state
+        const redirectTo = searchParams.get('redirectTo') || 
+                          (location.state as { redirectTo?: string })?.redirectTo || 
+                          `/profile/${profile.id}`;
+        
+        console.info('Authentication successful. Redirecting to:', redirectTo);
+        navigate(redirectTo, { replace: true });
+      }, 100);
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -148,7 +159,13 @@ const SignIn = () => {
 
           <div className="space-y-4">
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Processing..." : "Sign In"}
+              {loading ? (
+                <>
+                  <LoadingSpinner className="h-4 w-4 mr-2" /> Processing...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
 
             <div className="text-center space-y-2">
