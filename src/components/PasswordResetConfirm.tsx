@@ -45,8 +45,8 @@ const PasswordResetConfirm = () => {
         description: "Your password has been reset successfully.",
       });
 
-      // Redirect to home page
-      navigate("/");
+      // Redirect to sign-in page
+      navigate("/sign-in");
     } catch (error) {
       console.error("Error:", error);
       toast({

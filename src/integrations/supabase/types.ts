@@ -95,32 +95,38 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          elevenlabs_voice_id: string | null
           email: string | null
           first_name: string
           id: string
           last_name: string
           password: string
           phone_number: string
+          synthflow_voice_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          elevenlabs_voice_id?: string | null
           email?: string | null
           first_name: string
           id?: string
           last_name: string
           password: string
           phone_number: string
+          synthflow_voice_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          elevenlabs_voice_id?: string | null
           email?: string | null
           first_name?: string
           id?: string
           last_name?: string
           password?: string
           phone_number?: string
+          synthflow_voice_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -131,6 +137,7 @@ export type Database = {
           created_at: string
           id: string
           profile_id: string
+          share_token: string | null
           title: string | null
           updated_at: string
         }
@@ -139,6 +146,7 @@ export type Database = {
           created_at?: string
           id?: string
           profile_id: string
+          share_token?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -147,6 +155,7 @@ export type Database = {
           created_at?: string
           id?: string
           profile_id?: string
+          share_token?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -160,35 +169,85 @@ export type Database = {
           },
         ]
       }
-      stories_storybooks: {
+      stories_richard: {
         Row: {
-          added_at: string
-          story_id: string
-          storybook_id: string
+          created_at: string | null
+          first_name: string
+          id: number
+          last_name: string
+          media: string | null
+          story_content: string
+          story_date: string
+          story_title: string
+          updated_at: string | null
         }
         Insert: {
-          added_at?: string
-          story_id: string
-          storybook_id: string
+          created_at?: string | null
+          first_name: string
+          id?: number
+          last_name: string
+          media?: string | null
+          story_content: string
+          story_date?: string
+          story_title: string
+          updated_at?: string | null
         }
         Update: {
-          added_at?: string
-          story_id?: string
-          storybook_id?: string
+          created_at?: string | null
+          first_name?: string
+          id?: number
+          last_name?: string
+          media?: string | null
+          story_content?: string
+          story_date?: string
+          story_title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      story_audio: {
+        Row: {
+          audio_type: string | null
+          audio_url: string
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          language: string | null
+          last_played_at: string | null
+          playback_count: number | null
+          story_id: string | null
+          voice_id: string | null
+        }
+        Insert: {
+          audio_type?: string | null
+          audio_url: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          language?: string | null
+          last_played_at?: string | null
+          playback_count?: number | null
+          story_id?: string | null
+          voice_id?: string | null
+        }
+        Update: {
+          audio_type?: string | null
+          audio_url?: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          language?: string | null
+          last_played_at?: string | null
+          playback_count?: number | null
+          story_id?: string | null
+          voice_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "stories_storybooks_story_id_fkey"
+            foreignKeyName: "story_audio_story_id_fkey"
             columns: ["story_id"]
             isOneToOne: false
             referencedRelation: "stories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stories_storybooks_storybook_id_fkey"
-            columns: ["storybook_id"]
-            isOneToOne: false
-            referencedRelation: "storybooks"
             referencedColumns: ["id"]
           },
         ]
@@ -231,38 +290,94 @@ export type Database = {
           },
         ]
       }
-      storybook_collaborators: {
+      storybook_members: {
         Row: {
-          created_at: string
+          added_at: string
+          added_by: string
           id: string
           profile_id: string
-          role: string
+          role: Database["public"]["Enums"]["storybook_role"]
           storybook_id: string
         }
         Insert: {
-          created_at?: string
+          added_at?: string
+          added_by: string
           id?: string
           profile_id: string
-          role?: string
+          role: Database["public"]["Enums"]["storybook_role"]
           storybook_id: string
         }
         Update: {
-          created_at?: string
+          added_at?: string
+          added_by?: string
           id?: string
           profile_id?: string
-          role?: string
+          role?: Database["public"]["Enums"]["storybook_role"]
           storybook_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "storybook_collaborators_profile_id_fkey"
+            foreignKeyName: "storybook_members_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storybook_members_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "storybook_collaborators_storybook_id_fkey"
+            foreignKeyName: "storybook_members_storybook_id_fkey"
+            columns: ["storybook_id"]
+            isOneToOne: false
+            referencedRelation: "storybooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storybook_stories: {
+        Row: {
+          added_at: string
+          added_by: string
+          id: string
+          story_id: string
+          storybook_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          id?: string
+          story_id: string
+          storybook_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          id?: string
+          story_id?: string
+          storybook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storybook_stories_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storybook_stories_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storybook_stories_storybook_id_fkey"
             columns: ["storybook_id"]
             isOneToOne: false
             referencedRelation: "storybooks"
@@ -275,7 +390,6 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          profile_id: string
           title: string
           updated_at: string
         }
@@ -283,7 +397,6 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          profile_id: string
           title: string
           updated_at?: string
         }
@@ -291,19 +404,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          profile_id?: string
           title?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "storybooks_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -313,7 +417,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      storybook_role: "owner" | "contributor" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never

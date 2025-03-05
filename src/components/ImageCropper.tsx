@@ -22,48 +22,66 @@ const ImageCropper = ({ imageUrl, onCropComplete, onCancel, open }: ImageCropper
   const imageRef = useRef<HTMLImageElement>(null);
 
   const getCroppedImg = async () => {
-    if (!imageRef.current) return;
+    try {
+      if (!imageRef.current) return null;
+      if (!crop.width || !crop.height) return null;
 
-    const image = imageRef.current;
-    const canvas = document.createElement('canvas');
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-    
-    canvas.width = crop.width! * scaleX;
-    canvas.height = crop.height! * scaleY;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const image = imageRef.current;
+      const canvas = document.createElement('canvas');
+      const scaleX = image.naturalWidth / image.width;
+      const scaleY = image.naturalHeight / image.height;
+      
+      canvas.width = crop.width * scaleX;
+      canvas.height = crop.height * scaleY;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
 
-    ctx.drawImage(
-      image,
-      crop.x! * scaleX,
-      crop.y! * scaleY,
-      crop.width! * scaleX,
-      crop.height! * scaleY,
-      0,
-      0,
-      crop.width! * scaleX,
-      crop.height! * scaleY
-    );
+      ctx.drawImage(
+        image,
+        crop.x * scaleX,
+        crop.y * scaleY,
+        crop.width * scaleX,
+        crop.height * scaleY,
+        0,
+        0,
+        crop.width * scaleX,
+        crop.height * scaleY
+      );
 
-    return new Promise<Blob>((resolve) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-      }, 'image/jpeg', 1);
-    });
+      return new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Canvas to Blob conversion failed'));
+            }
+          },
+          'image/jpeg',
+          1
+        );
+      });
+    } catch (error) {
+      console.error('Error creating cropped image:', error);
+      return null;
+    }
   };
 
   const handleCropComplete = async () => {
-    const croppedBlob = await getCroppedImg();
-    if (croppedBlob) {
-      onCropComplete(croppedBlob);
+    try {
+      const croppedBlob = await getCroppedImg();
+      if (croppedBlob) {
+        onCropComplete(croppedBlob);
+      }
+    } catch (error) {
+      console.error('Error in crop completion:', error);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={() => onCancel()}>
-      <DialogContent className="max-w-[90vw] w-fit">
+      <DialogContent className="max-w-[90vw] w-fit p-6 [&>button]:hidden">
         <div className="space-y-4">
           <ReactCrop
             crop={crop}
@@ -74,6 +92,12 @@ const ImageCropper = ({ imageUrl, onCropComplete, onCancel, open }: ImageCropper
               src={imageUrl}
               alt="Crop preview"
               className="max-h-[70vh] object-contain"
+              onLoad={() => {
+                // Ensure image is loaded before allowing crop
+                if (imageRef.current) {
+                  imageRef.current.crossOrigin = "anonymous";
+                }
+              }}
             />
           </ReactCrop>
           <div className="flex justify-end gap-2">

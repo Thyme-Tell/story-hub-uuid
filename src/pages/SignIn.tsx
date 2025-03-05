@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import FormField from "@/components/FormField";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePhoneNumber } from "@/utils/phoneUtils";
 import Cookies from "js-cookie";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const SignIn = () => {
   useEffect(() => {
@@ -13,6 +15,8 @@ const SignIn = () => {
   }, []);
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -33,41 +37,75 @@ const SignIn = () => {
         .eq("phone_number", normalizedPhoneNumber)
         .maybeSingle();
 
-      if (searchError) throw searchError;
+      if (searchError) {
+        console.error("Search error:", searchError);
+        throw searchError;
+      }
 
       if (!profile) {
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "No account found with this phone number.",
+          title: "Account Not Found",
+          description: (
+            <div className="space-y-2">
+              <p>No account found with this phone number.</p>
+              <p>
+                Please check your phone number or{" "}
+                <Link to="/" className="text-primary hover:underline">
+                  sign up for a new account
+                </Link>
+              </p>
+            </div>
+          ),
         });
+        setLoading(false);
         return;
       }
 
       if (profile.password !== formData.password) {
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Invalid password.",
+          title: "Incorrect Password",
+          description: (
+            <div className="space-y-2">
+              <p>The password you entered is incorrect.</p>
+              <p>
+                <Link to="/reset-password" className="text-primary hover:underline">
+                  Reset your password
+                </Link>{" "}
+                if you've forgotten it.
+              </p>
+            </div>
+          ),
         });
+        setLoading(false);
         return;
       }
 
-      // Set cookie to expire in 365 days
-      Cookies.set('profile_authorized', 'true', { expires: 365 });
+      // Set cookies to expire in 365 days
+      Cookies.set('profile_authorized', 'true', { expires: 365, path: '/' });
+      Cookies.set('phone_number', normalizedPhoneNumber, { expires: 365, path: '/' });
+      Cookies.set('profile_id', profile.id, { expires: 365, path: '/' });
 
-      toast({
-        title: "Success!",
-        description: "You have been signed in.",
-      });
-
-      navigate(`/profile/${profile.id}`);
+      // Add a delay to ensure cookies are set before redirecting
+      setTimeout(() => {
+        // Trigger a storage event to notify other tabs
+        window.localStorage.setItem('auth_state_changed', Date.now().toString());
+        
+        // Get the redirect path from URL params or location state
+        const redirectTo = searchParams.get('redirectTo') || 
+                          (location.state as { redirectTo?: string })?.redirectTo || 
+                          `/profile/${profile.id}`;
+        
+        console.info('Authentication successful. Redirecting to:', redirectTo);
+        navigate(redirectTo, { replace: true });
+      }, 100);
     } catch (error) {
       console.error("Error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "There was a problem signing in.",
+        description: "There was a problem signing in. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -119,16 +157,30 @@ const SignIn = () => {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Processing..." : "Sign In"}
-          </Button>
+          <div className="space-y-4">
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                <>
+                  <LoadingSpinner className="h-4 w-4 mr-2" /> Processing...
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </Button>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link to="/" className="text-primary hover:underline">
-              Sign up for Narra
-            </Link>
-          </p>
+            <div className="text-center space-y-2">
+              <Link to="/reset-password" className="text-primary hover:underline text-sm">
+                Forgot your password?
+              </Link>
+              
+              <p className="text-sm text-muted-foreground">
+                Don't have an account?{" "}
+                <Link to="/" className="text-primary hover:underline">
+                  Sign up for Narra
+                </Link>
+              </p>
+            </div>
+          </div>
         </form>
       </div>
     </div>
