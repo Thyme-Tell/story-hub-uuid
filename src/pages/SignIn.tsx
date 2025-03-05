@@ -33,7 +33,7 @@ const SignIn = () => {
     try {
       const { data: profile, error: searchError } = await supabase
         .from("profiles")
-        .select("id, password")
+        .select("id, password, email")
         .eq("phone_number", normalizedPhoneNumber)
         .maybeSingle();
 
@@ -82,36 +82,53 @@ const SignIn = () => {
         return;
       }
 
-      // Also sign in with Supabase Auth to establish a session
-      try {
-        // Try to find the user's email from the profile
-        const { data: userData } = await supabase
-          .from("profiles")
-          .select("email")
-          .eq("id", profile.id)
-          .single();
-          
-        if (userData?.email) {
+      // Set cookies first for compatibility with existing code
+      Cookies.set('profile_authorized', 'true', { expires: 30, path: '/' });
+      Cookies.set('phone_number', normalizedPhoneNumber, { expires: 30, path: '/' });
+      Cookies.set('profile_id', profile.id, { expires: 30, path: '/' });
+      
+      // Also sign in with Supabase Auth to establish a session (important for session-based operations)
+      let signInSuccess = false;
+      if (profile.email) {
+        try {
           // If we have an email, use it to sign in with Supabase Auth
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: userData.email,
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: profile.email,
             password: formData.password
           });
           
           if (signInError) {
-            console.log("Could not establish Supabase session, falling back to cookies only:", signInError);
+            console.error("Could not establish Supabase session:", signInError);
+            // Continue without session, we'll use cookie-based auth
           } else {
-            console.log("Successfully established Supabase Auth session");
+            console.log("Successfully established Supabase Auth session:", signInData.session?.user.id);
+            signInSuccess = true;
           }
+        } catch (authError) {
+          console.error("Error during Supabase Auth sign-in:", authError);
+          // Continue without session, we'll use cookie-based auth
         }
-      } catch (authError) {
-        console.log("Error during Supabase Auth sign-in, continuing with cookies only:", authError);
       }
-
-      // Set cookies to expire in 30 days for better persistence
-      Cookies.set('profile_authorized', 'true', { expires: 30, path: '/' });
-      Cookies.set('phone_number', normalizedPhoneNumber, { expires: 30, path: '/' });
-      Cookies.set('profile_id', profile.id, { expires: 30, path: '/' });
+      
+      if (!signInSuccess) {
+        // If we couldn't sign in with password, try to create a custom token session
+        try {
+          // Create a custom auth session as fallback
+          const { data: signInAnonymousData, error: anonymousError } = await supabase.auth.signInWithPassword({
+            email: `${profile.id}@anonymous.narra.app`,
+            password: 'narra-session-' + profile.id.substring(0, 8)
+          });
+          
+          if (!anonymousError) {
+            console.log("Created fallback session with ID:", signInAnonymousData?.session?.user.id);
+            signInSuccess = true;
+          } else {
+            console.error("Could not create fallback session:", anonymousError);
+          }
+        } catch (fallbackError) {
+          console.error("Error creating fallback session:", fallbackError);
+        }
+      }
 
       // Add a delay to ensure cookies are set before redirecting
       setTimeout(() => {

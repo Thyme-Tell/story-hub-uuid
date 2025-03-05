@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import Cookies from "js-cookie";
 
 interface CreateStoryBookModalProps {
   onSuccess: () => void;
@@ -67,18 +68,41 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     try {
       console.log("Creating storybook with profile ID:", profileId);
       
-      // Get current user session to ensure we're authenticated
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) {
-        throw new Error("No active session found. Please sign in again.");
+      // Get the user ID from cookies first as it's more reliable in this app's context
+      const storedProfileId = Cookies.get('profile_id');
+      let userId = storedProfileId;
+      
+      // Also try to get session as a backup
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          console.log("Active session found, user ID:", sessionData.session.user.id);
+          // If we have both, prefer the session user ID
+          userId = sessionData.session.user.id;
+        } else {
+          console.log("No active session found, falling back to cookie-based auth");
+          if (!userId) {
+            throw new Error("No user ID found. Please sign in again.");
+          }
+        }
+      } catch (sessionError) {
+        console.error("Error checking session:", sessionError);
+        // Continue with cookie-based ID if session check fails
+        if (!userId) {
+          throw new Error("Failed to verify user. Please sign in again.");
+        }
       }
       
-      const userId = sessionData.session.user.id;
-      console.log("Session user ID:", userId);
-      
-      if (userId !== profileId) {
-        console.log("User ID mismatch: Session userId:", userId, "Profile ID:", profileId);
-        // Use the session user ID as it's more reliable
+      // Verify the user ID exists in profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+        
+      if (profileError || !profileData) {
+        console.error("Error verifying profile:", profileError);
+        throw new Error("Could not verify your account. Please sign in again.");
       }
 
       // Step 1: Create the storybook
@@ -103,14 +127,14 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
 
       console.log("Storybook created successfully:", storybook);
       
-      // Step 2: Add the current user as owner using the verified session user ID
+      // Step 2: Add the current user as owner using the verified userId
       const { error: memberError } = await supabase
         .from("storybook_members")
         .insert({
           storybook_id: storybook.id,
-          profile_id: userId, // Use the session user ID here
+          profile_id: userId, 
           role: "owner",
-          added_by: userId // Use the session user ID here as well
+          added_by: userId
         });
 
       if (memberError) {
@@ -169,10 +193,11 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       <DialogTrigger asChild>
         <div>{children}</div>
       </DialogTrigger>
-      <DialogContent aria-label="Create New Storybook">
+      <DialogContent className="sm:max-w-md" aria-describedby="storybook-modal-description">
         <DialogHeader>
           <DialogTitle>Create New Storybook</DialogTitle>
         </DialogHeader>
+        <div id="storybook-modal-description" className="sr-only">Form to create a new storybook with title and optional description</div>
         {authLoading ? (
           <div className="flex items-center justify-center p-6">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
