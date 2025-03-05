@@ -66,12 +66,11 @@ const StoryBooks = () => {
         return;
       }
       
-      // Fix: Explicitly cast profileId to string to avoid excessive type instantiation
+      // Fetch storybooks that belong to the current user
       const { data, error } = await supabase
         .from('storybooks')
         .select('*')
-        // Use explicit type casting to string
-        .eq('profile_id', String(profileId))
+        .eq('profile_id', profileId)  // Filter by profile_id to avoid RLS issues
         .order('created_at', { ascending: false });
 
       if (error) {
