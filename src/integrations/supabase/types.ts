@@ -437,6 +437,18 @@ export type Database = {
         }
         Returns: string
       }
+      get_storybook_members: {
+        Args: {
+          _storybook_id: string
+        }
+        Returns: {
+          profile_id: string
+          role: string
+          first_name: string
+          last_name: string
+          email: string
+        }[]
+      }
       get_user_storybooks: {
         Args: {
           _profile_id: string
@@ -448,6 +460,21 @@ export type Database = {
           title: string
           updated_at: string
         }[]
+      }
+      remove_storybook_member: {
+        Args: {
+          _storybook_id: string
+          _profile_id: string
+        }
+        Returns: boolean
+      }
+      update_storybook_member_role: {
+        Args: {
+          _storybook_id: string
+          _profile_id: string
+          _new_role: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

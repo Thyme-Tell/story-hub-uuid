@@ -31,7 +31,6 @@ export function MemberManagement({ storyBookId }: MemberManagementProps) {
     queryKey: ["storybook-members", storyBookId],
     queryFn: async () => {
       try {
-        // Use the security definer function to get members
         const { data, error } = await supabase.rpc(
           'get_storybook_members',
           { _storybook_id: storyBookId }

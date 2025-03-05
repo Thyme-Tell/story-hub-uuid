@@ -21,6 +21,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface Member {
+  profile_id: string;
+  role: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 function StoryBookSettings() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -41,16 +49,18 @@ function StoryBookSettings() {
       if (storybookError) throw storybookError;
       if (!storybookData) throw new Error("Storybook not found");
       
+      // Use the security definer function to get members
       const { data: membersData, error: membersError } = await supabase
         .rpc('get_storybook_members', { _storybook_id: id });
         
       if (membersError) {
         console.error("Error fetching members:", membersError);
+        throw membersError;
       }
 
       return {
         ...storybookData,
-        storybook_members: membersData || []
+        storybook_members: membersData as Member[] || []
       };
     },
   });

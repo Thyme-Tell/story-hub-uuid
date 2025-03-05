@@ -17,6 +17,14 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface Member {
+  profile_id: string;
+  role: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export default function StoryBook() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -45,16 +53,18 @@ export default function StoryBook() {
           throw new Error("Storybook not found");
         }
         
+        // Use the security definer function to get members
         const { data: membersData, error: membersError } = await supabase
           .rpc('get_storybook_members', { _storybook_id: id });
           
         if (membersError) {
           console.error("Error fetching storybook members:", membersError);
+          throw membersError;
         }
         
         return {
           ...storybookData,
-          storybook_members: membersData || []
+          storybook_members: membersData as Member[] || []
         };
       } catch (err) {
         console.error("Failed to fetch storybook:", err);
@@ -93,11 +103,11 @@ export default function StoryBook() {
     );
   }
 
-  const contributors = storybook.storybook_members?.map(member => ({
+  const contributors = storybook.storybook_members.map(member => ({
     id: member.profile_id,
     name: `${member.first_name} ${member.last_name}`,
     initials: `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`,
-  })) || [];
+  }));
 
   return (
     <div className="relative min-h-screen">
