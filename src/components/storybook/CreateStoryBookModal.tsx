@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 interface CreateStoryBookModalProps {
   onSuccess: () => void;
@@ -18,16 +19,22 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [authVerified, setAuthVerified] = useState(false);
   const { toast } = useToast();
-  const { profileId, isAuthenticated, checkAuth } = useAuth();
+  const { profileId, isAuthenticated, checkAuth, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Run an authentication check when modal opens
   useEffect(() => {
     if (open) {
-      checkAuth();
+      const verifyAuth = async () => {
+        const isAuth = await checkAuth();
+        console.log("Auth verification result:", isAuth, "Profile ID:", profileId);
+        setAuthVerified(isAuth && !!profileId);
+      };
+      verifyAuth();
     }
-  }, [open, checkAuth]);
+  }, [open, checkAuth, profileId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,10 +67,18 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     try {
       console.log("Creating storybook with profile ID:", profileId);
       
-      // Create the storybook in one transaction
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        throw new Error("User not authenticated");
+      // Get current user session to ensure we're authenticated
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        throw new Error("No active session found. Please sign in again.");
+      }
+      
+      const userId = sessionData.session.user.id;
+      console.log("Session user ID:", userId);
+      
+      if (userId !== profileId) {
+        console.log("User ID mismatch: Session userId:", userId, "Profile ID:", profileId);
+        // Use the session user ID as it's more reliable
       }
 
       // Step 1: Create the storybook
@@ -88,14 +103,14 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
 
       console.log("Storybook created successfully:", storybook);
       
-      // Step 2: Add the current user as owner
+      // Step 2: Add the current user as owner using the verified session user ID
       const { error: memberError } = await supabase
         .from("storybook_members")
         .insert({
           storybook_id: storybook.id,
-          profile_id: user.user.id,
+          profile_id: userId, // Use the session user ID here
           role: "owner",
-          added_by: user.user.id
+          added_by: userId // Use the session user ID here as well
         });
 
       if (memberError) {
@@ -128,7 +143,9 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     if (newOpenState) {
       // When opening, check auth first
       const checkAndOpen = async () => {
+        setIsLoading(true);
         const isAuth = await checkAuth();
+        setIsLoading(false);
         if (!isAuth) {
           toast({
             title: "Authentication Required",
@@ -139,6 +156,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
           return;
         }
         setOpen(true);
+        setAuthVerified(true);
       };
       checkAndOpen();
     } else {
@@ -151,38 +169,52 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       <DialogTrigger asChild>
         <div>{children}</div>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-label="Create New Storybook">
         <DialogHeader>
           <DialogTitle>Create New Storybook</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormField
-            label="Title"
-            name="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-          <FormField
-            label="Description"
-            name="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional description"
-          />
-          <Button
-            type="submit"
-            className="w-full bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
-            disabled={isLoading || !isAuthenticated}
-          >
-            {isLoading ? "Creating..." : "Create Storybook"}
-          </Button>
-          {!isAuthenticated && (
-            <p className="text-sm text-red-500 text-center">
-              Please sign in to create a storybook
-            </p>
-          )}
-        </form>
+        {authLoading ? (
+          <div className="flex items-center justify-center p-6">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span>Verifying authentication...</span>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <FormField
+              label="Title"
+              name="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+            <FormField
+              label="Description"
+              name="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional description"
+            />
+            <Button
+              type="submit"
+              className="w-full bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
+              disabled={isLoading || !isAuthenticated || !authVerified}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                "Create Storybook"
+              )}
+            </Button>
+            {!isAuthenticated && (
+              <p className="text-sm text-red-500 text-center">
+                Please sign in to create a storybook
+              </p>
+            )}
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
