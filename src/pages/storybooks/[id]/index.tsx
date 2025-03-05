@@ -18,36 +18,59 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function StoryBook() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [sortOrder, setSortOrder] = useState("newest");
+  const { toast } = useToast();
 
-  const { data: storybook, isLoading, refetch } = useQuery({
+  const { data: storybook, isLoading, error } = useQuery({
     queryKey: ["storybook", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("storybooks")
-        .select(`
-          *,
-          storybook_members!inner (
-            profile_id,
-            role,
-            profiles!storybook_members_profile_id_fkey (
-              first_name,
-              last_name
+      try {
+        if (!id) throw new Error("No storybook ID provided");
+        
+        const { data, error } = await supabase
+          .from("storybooks")
+          .select(`
+            *,
+            storybook_members (
+              profile_id,
+              role,
+              profiles!storybook_members_profile_id_fkey (
+                first_name,
+                last_name
+              )
             )
-          )
-        `)
-        .eq("id", id)
-        .maybeSingle();
+          `)
+          .eq("id", id)
+          .maybeSingle();
 
-      if (error) throw error;
-      return data;
+        if (error) {
+          console.error("Error fetching storybook:", error);
+          throw error;
+        }
+        
+        if (!data) {
+          throw new Error("Storybook not found");
+        }
+        
+        return data;
+      } catch (err) {
+        console.error("Failed to fetch storybook:", err);
+        toast({
+          title: "Error",
+          description: "Failed to load storybook. Please try again.",
+          variant: "destructive",
+        });
+        throw err;
+      }
     },
+    retry: 1,
   });
-
+  
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -55,12 +78,15 @@ export default function StoryBook() {
       </div>
     );
   }
-
-  if (!storybook) {
+  
+  if (error || !storybook) {
     return (
       <div className="container mx-auto p-6 text-center">
         <div className="bg-white rounded-lg p-8 shadow-sm">
           <h2 className="text-2xl font-semibold mb-4">Storybook not found</h2>
+          <p className="text-gray-500 mb-4">
+            {error ? `Error: ${(error as Error).message}` : "The storybook you're looking for doesn't exist."}
+          </p>
           <Button onClick={() => navigate('/storybooks')}>
             Back to storybooks
           </Button>

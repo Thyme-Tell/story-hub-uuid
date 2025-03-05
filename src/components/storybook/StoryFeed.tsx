@@ -6,10 +6,28 @@ import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { StoryMediaGallery } from "./StoryMediaGallery";
+import { StoryMediaItem } from "@/types/media";
 
 interface StoryFeedProps {
   storyBookId: string;
   sortOrder: string;
+}
+
+interface StoryItem {
+  id: string;
+  added_at: string;
+  added_by: string;
+  profiles: {
+    first_name: string;
+    last_name: string;
+  };
+  story: {
+    id: string;
+    title: string;
+    content: string;
+    created_at: string;
+  };
+  media?: StoryMediaItem[];
 }
 
 export function StoryFeed({ storyBookId, sortOrder }: StoryFeedProps) {
@@ -50,7 +68,7 @@ export function StoryFeed({ storyBookId, sortOrder }: StoryFeedProps) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data;
+      return data as StoryItem[];
     },
   });
 
