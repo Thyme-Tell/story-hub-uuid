@@ -33,18 +33,22 @@ const StoryBooks = () => {
       
       if (isAuth && profileId) {
         try {
-          const { data: profile, error } = await supabase
+          // Explicitly create the query then execute it to avoid TypeScript issues
+          const query = supabase
             .from('profiles')
             .select('first_name')
-            .eq('id', profileId)
-            .maybeSingle();
+            .eq('id', profileId);
+            
+          const { data: profile, error } = await query.maybeSingle();
 
-          if (error || !profile) {
+          if (error) {
             console.error('Error fetching profile:', error);
             return;
           }
 
-          setFirstName(profile.first_name);
+          if (profile) {
+            setFirstName(profile.first_name);
+          }
         } catch (error) {
           console.error('Error checking profile:', error);
         }
@@ -59,18 +63,41 @@ const StoryBooks = () => {
     try {
       setIsLoading(true);
       
-      // Fetch storybooks
-      const { data, error } = await supabase
-        .from('storybooks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching storybooks:', error);
-        throw error;
+      // Fetch all storybooks the user is a member of
+      if (profileId) {
+        const { data: memberStorybooks, error: memberError } = await supabase
+          .from('storybook_members')
+          .select('storybook_id')
+          .eq('profile_id', profileId);
+          
+        if (memberError) {
+          console.error('Error fetching storybook memberships:', memberError);
+          throw memberError;
+        }
+        
+        // If user is a member of any storybooks, get those storybooks
+        if (memberStorybooks && memberStorybooks.length > 0) {
+          const storyBookIds = memberStorybooks.map(item => item.storybook_id);
+          
+          const { data, error } = await supabase
+            .from('storybooks')
+            .select('*')
+            .in('id', storyBookIds)
+            .order('created_at', { ascending: false });
+            
+          if (error) {
+            console.error('Error fetching storybooks:', error);
+            throw error;
+          }
+          
+          setStorybooks(data || []);
+        } else {
+          // User isn't a member of any storybooks
+          setStorybooks([]);
+        }
+      } else {
+        setStorybooks([]);
       }
-      
-      setStorybooks(data || []);
     } catch (error) {
       console.error('Error fetching storybooks:', error);
       toast({

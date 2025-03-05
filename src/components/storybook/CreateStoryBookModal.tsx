@@ -46,15 +46,14 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       console.log("Creating storybook with data:", {
         title: title.trim(),
         description: description.trim() || null,
-        profile_id: profileId
       });
       
+      // Step 1: Create the storybook
       const { data: storybook, error: storybookError } = await supabase
         .from("storybooks")
         .insert({ 
           title: title.trim(),
-          description: description.trim() || null,
-          profile_id: profileId
+          description: description.trim() || null
         })
         .select()
         .single();
@@ -70,6 +69,21 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       }
 
       console.log("Storybook created successfully:", storybook);
+      
+      // Step 2: Now add the current user as owner to the storybook_members table
+      const { error: memberError } = await supabase
+        .from("storybook_members")
+        .insert({
+          storybook_id: storybook.id,
+          profile_id: profileId,
+          role: "owner",
+          added_by: profileId
+        });
+
+      if (memberError) {
+        console.error("Error adding member to storybook:", memberError);
+        throw memberError;
+      }
 
       toast({
         title: "Success",
