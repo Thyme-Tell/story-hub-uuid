@@ -1,6 +1,6 @@
 
 import { StoryBookCard } from "./StoryBookCard";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface StoryBook {
   id: string;
@@ -12,14 +12,27 @@ interface StoryBook {
 interface StoryBookListProps {
   storybooks: StoryBook[];
   isLoading: boolean;
+  error: Error | null;
 }
 
-export function StoryBookList({ storybooks, isLoading }: StoryBookListProps) {
+export function StoryBookList({ storybooks, isLoading, error }: StoryBookListProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-[#A33D29] mb-4" />
         <div className="text-gray-600">Loading storybooks...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 rounded-lg p-8 text-center">
+        <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+        <div className="text-red-600 font-medium mb-2">Error loading storybooks</div>
+        <p className="text-red-500 max-w-md mx-auto">
+          {error.message || "There was an error loading your storybooks. Please try again."}
+        </p>
       </div>
     );
   }

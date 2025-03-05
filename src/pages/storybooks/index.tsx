@@ -20,6 +20,7 @@ const StoryBooks = () => {
   const { toast } = useToast();
   const [storybooks, setStorybooks] = useState<StoryBook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [firstName, setFirstName] = useState("");
   const { isAuthenticated, profileId, checkAuth } = useAuth();
 
@@ -62,6 +63,7 @@ const StoryBooks = () => {
   const fetchStorybooks = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       
       // Only attempt to fetch storybooks if user is authenticated
       if (!profileId) {
@@ -72,50 +74,20 @@ const StoryBooks = () => {
       
       console.log('Fetching storybooks for profile ID:', profileId);
       
-      // First, get all storybook IDs where the user is a member
-      const { data: memberData, error: memberError } = await supabase
-        .from('storybook_members')
-        .select('storybook_id')
-        .eq('profile_id', profileId);
-        
-      if (memberError) {
-        console.error('Error fetching storybook memberships:', memberError);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to retrieve your storybooks",
-        });
-        setIsLoading(false);
-        return;
-      }
+      // Use a direct RPC call to our security definer function to avoid recursion issues
+      const { data: storybooksData, error: fetchError } = await supabase.rpc(
+        'get_user_storybooks',
+        { _profile_id: profileId }
+      );
       
-      // If user is not a member of any storybooks
-      if (!memberData || memberData.length === 0) {
-        console.log('User is not a member of any storybooks');
-        setStorybooks([]);
-        setIsLoading(false);
-        return;
-      }
-      
-      // Extract storybook IDs from membership data
-      const storyBookIds = memberData.map(item => item.storybook_id);
-      console.log('Found storybook IDs:', storyBookIds);
-      
-      // Fetch the actual storybooks using the IDs
-      const { data: storybooksData, error: storybooksError } = await supabase
-        .from('storybooks')
-        .select('*')
-        .in('id', storyBookIds)
-        .order('created_at', { ascending: false });
-        
-      if (storybooksError) {
-        console.error('Error fetching storybooks:', storybooksError);
+      if (fetchError) {
+        console.error('Error fetching storybooks:', fetchError);
+        setError(new Error(fetchError.message || "Failed to load storybooks"));
         toast({
           variant: "destructive",
           title: "Error",
           description: "Failed to load storybooks",
         });
-        setIsLoading(false);
         return;
       }
       
@@ -123,6 +95,7 @@ const StoryBooks = () => {
       setStorybooks(storybooksData || []);
     } catch (error) {
       console.error('Exception in fetchStorybooks:', error);
+      setError(error instanceof Error ? error : new Error("Failed to load storybooks"));
       toast({
         variant: "destructive",
         title: "Error",
@@ -216,7 +189,7 @@ const StoryBooks = () => {
           </div>
         )}
 
-        <StoryBookList storybooks={storybooks} isLoading={isLoading} />
+        <StoryBookList storybooks={storybooks} isLoading={isLoading} error={error} />
       </div>
     </div>
   );
