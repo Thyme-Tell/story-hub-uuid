@@ -1,7 +1,10 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Link } from "react-router-dom";
+import { Library } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -59,9 +62,22 @@ const ProfileHeader = ({ firstName, lastName, profileId, onUpdate }: ProfileHead
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold font-sans text-left">
-        {firstName} {lastName}'s Stories
-      </h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-semibold font-sans text-left">
+          {firstName} {lastName}'s Stories
+        </h1>
+        <Button
+          variant="outline"
+          size="sm"
+          asChild
+          className="flex items-center gap-2"
+        >
+          <Link to="/storybooks">
+            <Library className="h-4 w-4" />
+            <span>Storybooks</span>
+          </Link>
+        </Button>
+      </div>
       <Button 
         className="w-full bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
         onClick={() => setIsDialogOpen(true)}
