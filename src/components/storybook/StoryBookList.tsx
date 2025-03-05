@@ -1,13 +1,7 @@
 
 import { StoryBookCard } from "./StoryBookCard";
 import { Loader2, AlertCircle } from "lucide-react";
-
-interface StoryBook {
-  id: string;
-  title: string;
-  description: string | null;
-  created_at: string;
-}
+import { StoryBook } from "@/types/supabase";
 
 interface StoryBookListProps {
   storybooks: StoryBook[];

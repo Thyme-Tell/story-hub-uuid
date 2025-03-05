@@ -15,14 +15,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { StoryBook } from "@/types/supabase";
+import { useUserStoryBooks } from "@/hooks/useUserStoryBooks";
 
 const StoryBooks = () => {
   const { toast } = useToast();
-  const [storybooks, setStorybooks] = useState<StoryBook[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const [firstName, setFirstName] = useState("");
   const { isAuthenticated, profileId, checkAuth } = useAuth();
+  
+  // Use our custom hook to fetch storybooks
+  const { 
+    storybooks, 
+    isLoading, 
+    error, 
+    refetch: fetchStorybooks 
+  } = useUserStoryBooks(profileId);
 
   useEffect(() => {
     document.title = "Narra Story | Storybooks";
@@ -57,54 +63,7 @@ const StoryBooks = () => {
     };
 
     initialAuthCheck();
-    fetchStorybooks();
   }, [profileId, checkAuth]);
-
-  const fetchStorybooks = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Only attempt to fetch storybooks if user is authenticated
-      if (!profileId) {
-        setStorybooks([]);
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log('Fetching storybooks for profile ID:', profileId);
-      
-      // Use a direct RPC call to our security definer function to avoid recursion issues
-      const { data: storybooksData, error: fetchError } = await supabase.rpc(
-        'get_user_storybooks',
-        { _profile_id: profileId }
-      );
-      
-      if (fetchError) {
-        console.error('Error fetching storybooks:', fetchError);
-        setError(new Error(fetchError.message || "Failed to load storybooks"));
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load storybooks",
-        });
-        return;
-      }
-      
-      console.log('Successfully fetched storybooks:', storybooksData);
-      setStorybooks(storybooksData || []);
-    } catch (error) {
-      console.error('Exception in fetchStorybooks:', error);
-      setError(error instanceof Error ? error : new Error("Failed to load storybooks"));
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load storybooks",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();

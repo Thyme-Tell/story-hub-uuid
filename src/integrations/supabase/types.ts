@@ -437,6 +437,18 @@ export type Database = {
         }
         Returns: string
       }
+      get_user_storybooks: {
+        Args: {
+          _profile_id: string
+        }
+        Returns: {
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       storybook_role: "owner" | "contributor" | "viewer"
