@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import FormField from "@/components/FormField";
@@ -24,8 +25,18 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
   useEffect(() => {
     if (open) {
       checkAuth();
+      
+      // If not authenticated, close the modal and redirect to sign-in
+      if (!isAuthenticated) {
+        setOpen(false);
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to create a storybook",
+        });
+        navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
+      }
     }
-  }, [open, checkAuth]);
+  }, [open, isAuthenticated, checkAuth, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +53,6 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
       toast({
         title: "Authentication Required",
         description: "Please sign in to create a storybook",
-        variant: "destructive",
       });
       setOpen(false);
       navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
@@ -115,11 +125,24 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     }
   };
 
+  // Use a different handler for the dialog trigger
+  const handleOpenDialog = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a storybook",
+      });
+      navigate("/sign-in", { state: { redirectTo: "/storybooks" } });
+      return;
+    }
+    setOpen(true);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <div onClick={handleOpenDialog}>
         {children}
-      </DialogTrigger>
+      </div>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Storybook</DialogTitle>

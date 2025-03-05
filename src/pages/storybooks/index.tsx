@@ -1,5 +1,6 @@
+
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { StoryBookList } from "@/components/storybook/StoryBookList";
 import { CreateStoryBookModal } from "@/components/storybook/CreateStoryBookModal";
@@ -16,8 +17,6 @@ import { Button } from "@/components/ui/button";
 import { StoryBook } from "@/types/supabase";
 
 const StoryBooks = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
   const [storybooks, setStorybooks] = useState<StoryBook[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,52 +24,45 @@ const StoryBooks = () => {
   const { isAuthenticated, profileId } = useAuth();
 
   useEffect(() => {
-    const init = async () => {
-      if (!isAuthenticated) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to view storybooks",
-        });
-        navigate(`/sign-in?redirectTo=${encodeURIComponent(location.pathname)}`, { replace: true });
-        return;
-      }
+    document.title = "Narra Story | Storybooks";
+    
+    // Fetch profile info if authenticated
+    const fetchProfileInfo = async () => {
+      if (isAuthenticated && profileId) {
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('first_name')
+            .eq('id', profileId)
+            .maybeSingle();
 
-      try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('first_name')
-          .eq('id', profileId)
-          .maybeSingle();
+          if (error || !profile) {
+            console.error('Error fetching profile:', error);
+            return;
+          }
 
-        if (error || !profile) {
-          throw error;
+          setFirstName(profile.first_name);
+        } catch (error) {
+          console.error('Error checking profile:', error);
         }
-
-        setFirstName(profile.first_name);
-      } catch (error) {
-        console.error('Error checking profile:', error);
-        navigate("/sign-in");
-        return;
       }
     };
 
-    init();
-    if (isAuthenticated) {
-      fetchStorybooks();
-    }
-  }, [navigate, toast, isAuthenticated, profileId, location.pathname]);
+    fetchProfileInfo();
+    fetchStorybooks();
+  }, [isAuthenticated, profileId]);
 
   const fetchStorybooks = async () => {
     try {
-      if (profileId) {
-        const { data, error } = await supabase
-          .from('storybooks')
-          .select('*')
-          .order('created_at', { ascending: false });
+      setIsLoading(true);
+      // Fetch public storybooks that are available to everyone
+      const { data, error } = await supabase
+        .from('storybooks')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setStorybooks(data || []);
-      }
+      if (error) throw error;
+      setStorybooks(data || []);
     } catch (error) {
       console.error('Error fetching storybooks:', error);
       toast({
@@ -89,7 +81,7 @@ const StoryBooks = () => {
       console.error("Error signing out:", error);
       return;
     }
-    navigate('/');
+    window.location.href = '/';
   };
 
   return (
@@ -117,14 +109,28 @@ const StoryBooks = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem asChild>
-              <Link to="/storybooks" className="flex items-center gap-2">
-                <Library className="h-4 w-4" />
-                <span>Storybooks</span>
+              <Link to="/" className="flex items-center gap-2">
+                <span>Home</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleLogout} className="text-[#A33D29]">
-              Not {firstName}? Log Out
-            </DropdownMenuItem>
+            {isAuthenticated ? (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link to={`/profile/${profileId}`} className="flex items-center gap-2">
+                    <span>My Stories</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="text-[#A33D29]">
+                  Not {firstName}? Log Out
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem asChild>
+                <Link to="/sign-in" className="flex items-center gap-2">
+                  <span>Sign In</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -134,14 +140,24 @@ const StoryBooks = () => {
           ← Back to Stories
         </Link>
         <div className="flex justify-between items-center mb-8 mt-4">
-          <h1 className="text-3xl font-bold">Your Storybooks</h1>
-          <CreateStoryBookModal onSuccess={fetchStorybooks}>
-            <Button
-              className="bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
-            >
-              Create New Storybook
-            </Button>
-          </CreateStoryBookModal>
+          <h1 className="text-3xl font-bold">Storybooks</h1>
+          {isAuthenticated ? (
+            <CreateStoryBookModal onSuccess={fetchStorybooks}>
+              <Button
+                className="bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
+              >
+                Create New Storybook
+              </Button>
+            </CreateStoryBookModal>
+          ) : (
+            <Link to="/sign-in">
+              <Button
+                className="bg-[#A33D29] hover:bg-[#A33D29]/90 text-white"
+              >
+                Sign In to Create
+              </Button>
+            </Link>
+          )}
         </div>
 
         <StoryBookList storybooks={storybooks} isLoading={isLoading} />
