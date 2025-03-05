@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { StoryBookList } from "@/components/storybook/StoryBookList";
 import { CreateStoryBookModal } from "@/components/storybook/CreateStoryBookModal";
 import { supabase } from "@/integrations/supabase/client";
-import { Menu, Library } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
@@ -66,11 +66,11 @@ const StoryBooks = () => {
         return;
       }
       
-      // Fixed the TypeScript error by explicitly casting profileId to string
+      // Use type assertion to explicitly tell TypeScript that profileId is a string
       const { data, error } = await supabase
         .from('storybooks')
         .select('*')
-        .eq('profile_id', String(profileId))
+        .eq('profile_id', profileId as string)
         .order('created_at', { ascending: false });
 
       if (error) {
