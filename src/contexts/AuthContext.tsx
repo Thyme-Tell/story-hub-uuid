@@ -9,6 +9,7 @@ interface AuthContextType {
   profileId: string | null;
   checkAuth: () => Promise<boolean>;
   logout: () => Promise<void>;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,10 +17,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   const checkAuth = useCallback(async () => {
     try {
+      setIsLoading(true);
       console.log("Checking authentication status...");
       
       // First check if there's an active session
@@ -48,12 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthenticated(true);
             setProfileId(profile.id);
             console.log("Auth check result: Authenticated with session. Profile ID:", profile.id);
+            setIsLoading(false);
             return true;
           }
         } else {
           setIsAuthenticated(true);
           setProfileId(storedProfileId);
           console.log("Auth check result: Authenticated with session and cookies. Profile ID:", storedProfileId);
+          setIsLoading(false);
           return true;
         }
       } else if (storedProfileId && isAuthorized) {
@@ -72,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthenticated(false);
             setProfileId(null);
             console.log("Auth check result: Failed cookie validation");
+            setIsLoading(false);
             return false;
           }
 
@@ -83,10 +89,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(true);
           setProfileId(profile.id);
           console.log("Auth check result: Successfully revalidated via cookies. Profile ID:", profile.id);
+          setIsLoading(false);
           return true;
         } catch (error) {
           console.error('Error during cookie validation:', error);
           clearAuthCookies();
+          setIsLoading(false);
           return false;
         }
       }
@@ -95,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("Auth check result: Not authenticated");
       setIsAuthenticated(false);
       setProfileId(null);
+      setIsLoading(false);
       return false;
     } catch (error) {
       console.error('Error checking auth:', error);
@@ -102,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(false);
       setProfileId(null);
       console.log("Auth check result: Error occurred");
+      setIsLoading(false);
       return false;
     }
   }, []);
@@ -155,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [checkAuth]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, profileId, checkAuth, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, profileId, checkAuth, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
