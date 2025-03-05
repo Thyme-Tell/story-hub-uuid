@@ -59,10 +59,18 @@ const StoryBooks = () => {
     try {
       setIsLoading(true);
       
-      // Fetch storybooks
+      if (!profileId) {
+        console.log('No profile ID available, cannot fetch storybooks');
+        setStorybooks([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fetch storybooks that belong to the current user
       const { data, error } = await supabase
         .from('storybooks')
         .select('*')
+        .eq('profile_id', profileId)  // Filter by profile_id to avoid RLS issues
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -70,6 +78,7 @@ const StoryBooks = () => {
         throw error;
       }
       
+      console.log('Fetched storybooks:', data);
       setStorybooks(data || []);
     } catch (error) {
       console.error('Error fetching storybooks:', error);

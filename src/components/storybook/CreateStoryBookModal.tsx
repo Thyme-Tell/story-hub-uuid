@@ -49,27 +49,19 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
         profile_id: profileId
       });
       
-      const { data: storybook, error: storybookError } = await supabase
+      // Direct insert without select to avoid RLS policy issues
+      const { error: storybookError } = await supabase
         .from("storybooks")
         .insert({ 
           title: title.trim(),
           description: description.trim() || null,
           profile_id: profileId
-        })
-        .select()
-        .single();
+        });
 
       if (storybookError) {
         console.error("Error creating storybook:", storybookError);
         throw storybookError;
       }
-
-      if (!storybook) {
-        console.error("No storybook data returned");
-        throw new Error("No storybook data returned after creation");
-      }
-
-      console.log("Storybook created successfully:", storybook);
 
       toast({
         title: "Success",
