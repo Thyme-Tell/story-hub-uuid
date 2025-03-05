@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import FormField from "@/components/FormField";
@@ -33,7 +32,8 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     e.preventDefault();
     
     // Check authentication first
-    if (!isAuthenticated || !profileId) {
+    const isAuth = await checkAuth();
+    if (!isAuth || !profileId) {
       console.log("User not authenticated, redirecting to sign in");
       toast({
         title: "Authentication Required",
@@ -57,11 +57,7 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
     setIsLoading(true);
 
     try {
-      console.log("Creating storybook with data:", {
-        title: title.trim(),
-        description: description.trim() || null,
-        profileId
-      });
+      console.log("Creating storybook with profile ID:", profileId);
       
       // Step 1: Create the storybook
       const { data: storybook, error: storybookError } = await supabase
@@ -122,8 +118,8 @@ export function CreateStoryBookModal({ onSuccess, children }: CreateStoryBookMod
   };
 
   const handleOpenChange = (newOpenState: boolean) => {
-    if (newOpenState && !isAuthenticated) {
-      // If trying to open and not authenticated, check auth first
+    if (newOpenState) {
+      // When opening, check auth first
       const checkAndOpen = async () => {
         const isAuth = await checkAuth();
         if (!isAuth) {

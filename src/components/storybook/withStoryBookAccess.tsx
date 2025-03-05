@@ -1,7 +1,10 @@
+
 import { useNavigate } from "react-router-dom";
 import { useStoryBookPermissions } from "@/hooks/useStoryBookPermissions";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 
 interface WithStoryBookAccessProps {
   storyBookId: string;
@@ -17,6 +20,33 @@ export function withStoryBookAccess<P extends WithStoryBookAccessProps>(
     const { isOwner, canEdit, isLoading, error } = useStoryBookPermissions(storyBookId);
     const navigate = useNavigate();
     const { toast } = useToast();
+    const { isAuthenticated, checkAuth } = useAuth();
+
+    // Check authentication on component mount
+    useEffect(() => {
+      const verifyAuth = async () => {
+        const isAuth = await checkAuth();
+        if (!isAuth) {
+          toast({
+            title: "Authentication Required",
+            description: "Please sign in to access this page",
+            variant: "destructive",
+          });
+          navigate('/sign-in', { state: { redirectTo: window.location.pathname } });
+        }
+      };
+      
+      verifyAuth();
+    }, [checkAuth, navigate, toast]);
+
+    if (!isAuthenticated) {
+      return (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="ml-2">Verifying authentication...</span>
+        </div>
+      );
+    }
 
     if (isLoading) {
       return (

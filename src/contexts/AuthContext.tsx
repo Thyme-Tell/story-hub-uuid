@@ -42,8 +42,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .maybeSingle();
 
           if (profile) {
-            Cookies.set('profile_id', profile.id, { expires: 7 });
-            Cookies.set('profile_authorized', 'true', { expires: 7 });
+            // Set cookies with long expiration (30 days)
+            Cookies.set('profile_id', profile.id, { expires: 30, path: '/' });
+            Cookies.set('profile_authorized', 'true', { expires: 30, path: '/' });
             setIsAuthenticated(true);
             setProfileId(profile.id);
             console.log("Auth check result: Authenticated with session. Profile ID:", profile.id);
@@ -57,25 +58,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (storedProfileId && isAuthorized) {
         // Validate the cookie-based authentication if no active session
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', storedProfileId)
-          .maybeSingle();
+        try {
+          // Try to establish a session from stored auth data
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', storedProfileId)
+            .maybeSingle();
 
-        if (error || !profile) {
-          console.error('Error validating auth:', error);
+          if (error || !profile) {
+            console.error('Error validating auth:', error);
+            clearAuthCookies();
+            setIsAuthenticated(false);
+            setProfileId(null);
+            console.log("Auth check result: Failed cookie validation");
+            return false;
+          }
+
+          // We found a valid profile with the stored ID
+          // Refresh cookies to extend session
+          Cookies.set('profile_id', profile.id, { expires: 30, path: '/' });
+          Cookies.set('profile_authorized', 'true', { expires: 30, path: '/' });
+          
+          setIsAuthenticated(true);
+          setProfileId(profile.id);
+          console.log("Auth check result: Successfully revalidated via cookies. Profile ID:", profile.id);
+          return true;
+        } catch (error) {
+          console.error('Error during cookie validation:', error);
           clearAuthCookies();
-          setIsAuthenticated(false);
-          setProfileId(null);
-          console.log("Auth check result: Failed cookie validation");
           return false;
         }
-
-        setIsAuthenticated(true);
-        setProfileId(profile.id);
-        console.log("Auth check result: Authenticated with cookies. Profile ID:", profile.id);
-        return true;
       }
 
       // If no valid session or cookies, user is not authenticated
@@ -119,13 +132,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       checkAuth();
     });
     
-    // Set up an interval to periodically check auth status (every 5 minutes)
+    // Listen for auth state changes from other tabs/windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'auth_state_changed') {
+        console.log('Auth state change detected from another tab/window');
+        checkAuth();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Set up an interval to periodically check auth status (every 10 minutes)
     const authCheckInterval = setInterval(() => {
       checkAuth();
-    }, 5 * 60 * 1000);
+    }, 10 * 60 * 1000);
 
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
       clearInterval(authCheckInterval);
     };
   }, [checkAuth]);

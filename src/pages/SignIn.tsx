@@ -82,10 +82,36 @@ const SignIn = () => {
         return;
       }
 
-      // Set cookies to expire in 365 days
-      Cookies.set('profile_authorized', 'true', { expires: 365, path: '/' });
-      Cookies.set('phone_number', normalizedPhoneNumber, { expires: 365, path: '/' });
-      Cookies.set('profile_id', profile.id, { expires: 365, path: '/' });
+      // Also sign in with Supabase Auth to establish a session
+      try {
+        // Try to find the user's email from the profile
+        const { data: userData } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", profile.id)
+          .single();
+          
+        if (userData?.email) {
+          // If we have an email, use it to sign in with Supabase Auth
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: userData.email,
+            password: formData.password
+          });
+          
+          if (signInError) {
+            console.log("Could not establish Supabase session, falling back to cookies only:", signInError);
+          } else {
+            console.log("Successfully established Supabase Auth session");
+          }
+        }
+      } catch (authError) {
+        console.log("Error during Supabase Auth sign-in, continuing with cookies only:", authError);
+      }
+
+      // Set cookies to expire in 30 days for better persistence
+      Cookies.set('profile_authorized', 'true', { expires: 30, path: '/' });
+      Cookies.set('phone_number', normalizedPhoneNumber, { expires: 30, path: '/' });
+      Cookies.set('profile_id', profile.id, { expires: 30, path: '/' });
 
       // Add a delay to ensure cookies are set before redirecting
       setTimeout(() => {
