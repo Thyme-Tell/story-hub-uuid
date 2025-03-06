@@ -430,6 +430,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_modify_storybook_members: {
+        Args: {
+          _storybook_id: string
+        }
+        Returns: boolean
+      }
+      can_view_storybook_members: {
+        Args: {
+          _storybook_id: string
+        }
+        Returns: boolean
+      }
       create_storybook_with_owner: {
         Args: {
           _title: string

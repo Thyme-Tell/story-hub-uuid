@@ -38,13 +38,18 @@ export function AddMemberModal({ storyBookId, onSuccess }: AddMemberModalProps) 
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error adding member:", error);
+        throw error;
+      }
 
       toast({
         title: "Success",
         description: "Member added successfully",
       });
       setOpen(false);
+      setEmail("");
+      setRole("viewer");
       onSuccess();
     } catch (error) {
       console.error("Add member error:", error);
