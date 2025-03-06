@@ -28,8 +28,8 @@ export function AddMemberModal({ storyBookId, onSuccess }: AddMemberModalProps) 
     setIsLoading(true);
 
     try {
-      // Call RPC function to add member
-      const { error } = await supabase.rpc(
+      // Call the add_storybook_member RPC function
+      const { data, error } = await supabase.rpc(
         'add_storybook_member',
         { 
           _storybook_id: storyBookId,

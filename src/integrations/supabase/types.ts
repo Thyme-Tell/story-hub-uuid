@@ -414,6 +414,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_storybook_member: {
+        Args: {
+          _storybook_id: string
+          _email: string
+          _role: string
+        }
+        Returns: boolean
+      }
       can_add_storybook_member: {
         Args: {
           _storybook_id: string
