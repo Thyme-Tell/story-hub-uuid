@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ function StoryBookSettings() {
       if (storybookError) throw storybookError;
       if (!storybookData) throw new Error("Storybook not found");
       
+      // Use the security definer function to get members
       const { data: membersData, error: membersError } = await supabase
         .rpc('get_storybook_members', { _storybook_id: id });
         
@@ -105,17 +106,9 @@ function StoryBookSettings() {
     <div className="container mx-auto p-6 space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Settings</h1>
-        <div className="space-x-2">
-          <Button variant="ghost" onClick={() => navigate(`/storybooks/${id}`)}>
-            Back to Storybook
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => navigate(`/storybooks/${id}/owner`)}
-          >
-            Owner View
-          </Button>
-        </div>
+        <Button variant="ghost" onClick={() => navigate(`/storybooks/${id}`)}>
+          Back to Storybook
+        </Button>
       </div>
 
       <div className="grid gap-8">
