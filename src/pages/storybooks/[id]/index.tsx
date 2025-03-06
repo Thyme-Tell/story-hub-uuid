@@ -1,9 +1,10 @@
+
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StoryFeed } from "@/components/storybook/StoryFeed";
 import { Button } from "@/components/ui/button";
-import { Settings, ArrowLeft, Book, Plus } from "lucide-react";
+import { Settings, ArrowLeft, Book, Plus, Shield } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -16,6 +17,7 @@ import {
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStoryBookPermissions } from "@/hooks/useStoryBookPermissions";
 
 interface Member {
   profile_id: string;
@@ -31,6 +33,7 @@ export default function StoryBook() {
   const [sortOrder, setSortOrder] = useState("newest");
   const { toast } = useToast();
   const { profileId } = useAuth();
+  const { isOwner } = useStoryBookPermissions(id || "");
 
   const { data: storybook, isLoading, error } = useQuery({
     queryKey: ["storybook", id, profileId],
@@ -138,6 +141,19 @@ export default function StoryBook() {
             >
               <Book className="h-6 w-6 text-white" />
             </Button>
+            
+            {isOwner && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="bg-white/20 backdrop-blur-sm rounded-full h-12 w-12"
+                asChild
+              >
+                <Link to={`/storybooks/${storybook.id}/owner-view`}>
+                  <Shield className="h-6 w-6 text-white" />
+                </Link>
+              </Button>
+            )}
             
             <Button 
               variant="ghost" 

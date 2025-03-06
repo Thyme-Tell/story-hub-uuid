@@ -7,6 +7,7 @@ import SharedStory from "./components/SharedStory";
 import StoryBooks from "./pages/storybooks";
 import StoryBook from "./pages/storybooks/[id]";
 import StoryBookSettings from "./pages/storybooks/[id]/settings";
+import StoryBookOwnerView from "./pages/storybooks/[id]/owner-view";
 import AddStoryPage from "./pages/storybooks/[id]/add-story";
 import PasswordResetRequest from "./components/PasswordResetRequest";
 import PasswordResetConfirm from "./components/PasswordResetConfirm";
@@ -36,6 +37,7 @@ function App() {
           <Route path="/stories/:shareToken" element={<SharedStory />} />
           <Route path="/storybooks" element={<StoryBooks />} />
           <Route path="/storybooks/:id" element={<StoryBook />} />
+          <Route path="/storybooks/:id/owner-view" element={<StoryBookOwnerView />} />
           <Route path="/storybooks/:id/settings" element={<StoryBookSettingsWrapper />} />
           <Route path="/storybooks/:id/add-story" element={<AddStoryWrapper />} />
           <Route path="/reset-password" element={<PasswordResetRequest />} />

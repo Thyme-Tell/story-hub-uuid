@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,8 +19,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
 
 interface Member {
   profile_id: string;
@@ -29,21 +31,20 @@ interface Member {
   email: string;
 }
 
-function StoryBookSettings() {
-  const { id } = useParams();
+function StoryBookSettings({ storyBookId }: { storyBookId: string }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profileId } = useAuth();
 
   const { data: storybook, isLoading } = useQuery({
-    queryKey: ["storybook", id, profileId],
+    queryKey: ["storybook", storyBookId, profileId],
     queryFn: async () => {
-      if (!id) throw new Error("No storybook ID provided");
+      if (!storyBookId) throw new Error("No storybook ID provided");
 
       const { data: storybookData, error: storybookError } = await supabase
         .from("storybooks")
         .select("*")
-        .eq("id", id)
+        .eq("id", storyBookId)
         .maybeSingle();
 
       if (storybookError) throw storybookError;
@@ -51,7 +52,7 @@ function StoryBookSettings() {
       
       // Use the security definer function to get members
       const { data: membersData, error: membersError } = await supabase
-        .rpc('get_storybook_members', { _storybook_id: id });
+        .rpc('get_storybook_members', { _storybook_id: storyBookId });
         
       if (membersError) {
         console.error("Error fetching members:", membersError);
@@ -67,12 +68,12 @@ function StoryBookSettings() {
 
   const handleDelete = async () => {
     try {
-      if (!id) return;
+      if (!storyBookId) return;
 
       const { error } = await supabase
         .from("storybooks")
         .delete()
-        .eq("id", id);
+        .eq("id", storyBookId);
 
       if (error) throw error;
 
@@ -106,9 +107,17 @@ function StoryBookSettings() {
     <div className="container mx-auto p-6 space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Settings</h1>
-        <Button variant="ghost" onClick={() => navigate(`/storybooks/${id}`)}>
-          Back to Storybook
-        </Button>
+        <div className="flex gap-4">
+          <Button variant="outline" asChild>
+            <Link to={`/storybooks/${storyBookId}/owner-view`} className="flex items-center">
+              <Shield className="h-4 w-4 mr-2" />
+              Owner View
+            </Link>
+          </Button>
+          <Button variant="ghost" onClick={() => navigate(`/storybooks/${storyBookId}`)}>
+            Back to Storybook
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-8">
