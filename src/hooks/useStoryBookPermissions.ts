@@ -20,12 +20,12 @@ export function useStoryBookPermissions(storyBookId: string): StoryBookPermissio
   const { data, isLoading, error } = useQuery({
     queryKey: ["storybook-permissions", storyBookId, profileId],
     queryFn: async () => {
-      if (!isAuthenticated || !profileId) {
+      if (!isAuthenticated || !profileId || !storyBookId) {
         return null;
       }
 
       try {
-        // Use the security definer function to avoid recursion
+        // Always use the security definer function to avoid recursion
         const { data: roleData, error: roleError } = await supabase.rpc(
           'get_storybook_member_role',
           { 
@@ -39,6 +39,7 @@ export function useStoryBookPermissions(storyBookId: string): StoryBookPermissio
           throw roleError;
         }
 
+        console.log("Role data from RPC:", roleData);
         return roleData as StoryBookRole | null;
       } catch (err) {
         console.error("Failed to fetch permissions:", err);
