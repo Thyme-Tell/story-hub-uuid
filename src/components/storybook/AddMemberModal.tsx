@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -27,32 +28,17 @@ export function AddMemberModal({ storyBookId, onSuccess }: AddMemberModalProps) 
     setIsLoading(true);
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      // Call RPC function to add member
+      const { error } = await supabase.rpc(
+        'add_storybook_member',
+        { 
+          _storybook_id: storyBookId,
+          _email: email,
+          _role: role
+        }
+      );
 
-      // Find profile by email
-      const { data: profiles, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", email)
-        .single();
-
-      if (profileError || !profiles) {
-        throw new Error("User not found");
-      }
-
-      // Add member to storybook
-      const { error: memberError } = await supabase
-        .from("storybook_members")
-        .insert({
-          storybook_id: storyBookId,
-          profile_id: profiles.id,
-          role,
-          added_by: user.id,
-        });
-
-      if (memberError) throw memberError;
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -61,6 +47,7 @@ export function AddMemberModal({ storyBookId, onSuccess }: AddMemberModalProps) 
       setOpen(false);
       onSuccess();
     } catch (error) {
+      console.error("Add member error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to add member",
