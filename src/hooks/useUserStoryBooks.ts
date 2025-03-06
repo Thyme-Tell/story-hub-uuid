@@ -18,7 +18,7 @@ export function useUserStoryBooks(profileId: string | null) {
 
       // Call the dedicated database function to avoid recursion
       const { data, error } = await supabase.rpc(
-        'get_user_storybooks' as any,
+        'get_user_storybooks',
         { _profile_id: profileId }
       );
 
