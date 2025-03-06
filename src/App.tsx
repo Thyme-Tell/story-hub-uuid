@@ -24,6 +24,12 @@ const AddStoryWrapper = () => {
   return <AddStoryPage storyBookId={params.id!} />;
 };
 
+// Wrapper for the StoryBookOwnerView
+const StoryBookOwnerViewWrapper = () => {
+  const params = useParams();
+  return <StoryBookOwnerView storyBookId={params.id!} />;
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -38,6 +44,7 @@ function App() {
           <Route path="/storybooks/:id" element={<StoryBook />} />
           <Route path="/storybooks/:id/settings" element={<StoryBookSettingsWrapper />} />
           <Route path="/storybooks/:id/add-story" element={<AddStoryWrapper />} />
+          <Route path="/storybooks/:id/owner" element={<StoryBookOwnerViewWrapper />} />
           <Route path="/reset-password" element={<PasswordResetRequest />} />
           <Route path="/reset-password/confirm" element={<PasswordResetConfirm />} />
         </Routes>

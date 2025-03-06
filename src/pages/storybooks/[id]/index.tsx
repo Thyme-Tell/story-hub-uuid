@@ -16,6 +16,7 @@ import {
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStoryBookPermissions } from "@/hooks/useStoryBookPermissions";
 
 interface Member {
   profile_id: string;
@@ -31,6 +32,7 @@ export default function StoryBook() {
   const [sortOrder, setSortOrder] = useState("newest");
   const { toast } = useToast();
   const { profileId } = useAuth();
+  const { isOwner } = useStoryBookPermissions(id || '');
 
   const { data: storybook, isLoading, error } = useQuery({
     queryKey: ["storybook", id, profileId],
@@ -53,7 +55,6 @@ export default function StoryBook() {
           throw new Error("Storybook not found");
         }
         
-        // Use the security definer function to get members
         const { data: membersData, error: membersError } = await supabase
           .rpc('get_storybook_members', { _storybook_id: id });
           
@@ -131,13 +132,19 @@ export default function StoryBook() {
           </Button>
           
           <div className="flex gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="bg-white/20 backdrop-blur-sm rounded-full h-12 w-12"
-            >
-              <Book className="h-6 w-6 text-white" />
-            </Button>
+            {isOwner && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="bg-white/20 backdrop-blur-sm rounded-full h-12 w-12"
+                asChild
+              >
+                <Link to={`/storybooks/${storybook.id}/owner`}>
+                  <span className="sr-only">Owner View</span>
+                  <Book className="h-6 w-6 text-white" />
+                </Link>
+              </Button>
+            )}
             
             <Button 
               variant="ghost" 
